@@ -76,37 +76,34 @@ fn rgb2hsl(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32){
     let min = min!(min!(r, g), b);
     let max = max!(max!(r, g), b);
 
-    let mut h;
-    let s;
-    let l;
+    let mut h ;
+    let s ;
+    let l ;
 
     let delta = max - min;
 
     l = (max + min) / 2.0;
 
     if delta == 0.0 {
-        s = 0.0;
         h = 0.0;
     }
-    else {
-        if r == max {
-            h = (g - b) / delta * 60.0;
-        }
-        else if g == max {
-            h = (b - r) / delta * 60.0 + 120.0;
-        }
-        else {
-            h = (r - g) / delta * 60.0 + 240.0;
-        }
-
-        h %= 360.0;
-
-        s = if l <= 0.5 {
-            delta / (max + min)
-        } else {
-            delta / (2.0 - (max + min))
-        }
+    else if max == r {
+        h = ((g - b) / delta) % 6.0;
     }
+    else if max == g {
+        h = (b - r) / delta + 2.0;
+    }
+    else {
+        h = (r - g) / delta + 4.0;
+    }
+
+    h = (h * 60.0).round();
+
+    if h < 0.0 {
+        h += 360.0;
+    }
+
+    s = if delta == 0.0 { 0.0 } else { delta / (1.0 - (2.0 * l - 1.0).abs())};
 
     return (h, s, l);
 }
