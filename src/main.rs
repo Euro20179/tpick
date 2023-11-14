@@ -297,20 +297,20 @@ impl ColorRepresentation {
 
     fn tohsl(&self) -> String {
         let (h, s, l) = self.hsl();
-        return format!("{}, {}, {}", h, s * 100.0, l * 100.0);
+        return format!("{}, {}, {}", h as u16, (s * 100.0) as u8, (l * 100.0) as u8);
     }
 
     fn tohsla(&self) -> String {
         let (h, s, l, a) = self.hsla();
-        return format!("{}, {}, {}, {}", h, s * 100.0, l * 100.0, a);
+        return format!("{}, {}, {}, {}", h as u8, (s * 100.0) as u8, (l * 100.0) as u8, a);
     }
 
     fn torgb(&self) -> String {
-        return format!("{}, {}, {}", self.r, self.g, self.b);
+        return format!("{}, {}, {}", self.r as u8, self.g as u8, self.b as u8);
     }
 
     fn torgba(&self) -> String {
-        return format!("{}, {}, {}, {}", self.r, self.g, self.b, self.a);
+        return format!("{}, {}, {}, {}", self.r as u8, self.g as u8, self.b as u8, self.a);
     }
 
     fn tohex(&self) -> String {
@@ -322,7 +322,7 @@ impl ColorRepresentation {
     }
 
     fn toansi(&self) -> String {
-        return format!("{};{};{}", self.r.round() as u8, self.g.round() as u8, self.b.round() as u8);
+        return format!("{};{};{}", self.r as u8, self.g as u8, self.b as u8);
     }
 }
 
