@@ -123,7 +123,7 @@ impl ColorRepresentation {
         let mut r: f32 = 0.0;
         let mut g: f32  = 0.0;
         let mut b: f32  = 0.0;
-        let mut a = 1;
+        let mut a = 255;
         let get_next = |split: &mut Split<'_, &str>| split.next().unwrap().trim().parse().unwrap();
         if clr.starts_with("\\x1b") {
             //\x1b[38;2;
@@ -178,6 +178,11 @@ impl ColorRepresentation {
         return rgb2hsl(self.r as f32, self.g as f32, self.b as f32);
     }
 
+    fn hsla(&self) -> (f32, f32, f32, u8) {
+        let data = rgb2hsl(self.r as f32, self.g as f32, self.b as f32);
+        return (data.0, data.1, data.2, self.a);
+    }
+
     fn modify_hsl(&mut self, mut new_value: (f32, f32, f32)){
         if new_value.0 < 0.0 || new_value.0 > 360.0{
             new_value.0 = max!(min!(360.0, new_value.0), 0.0);
@@ -191,17 +196,88 @@ impl ColorRepresentation {
         (self.r, self.g, self.b) = hsl2rgb(new_value.0, new_value.1, new_value.2);
     }
 
+    fn get_output_clr(&self, output_type: &OutputType, enable_alpha: bool) -> String {
+        return match output_type {
+            OutputType::HSL => {
+                if enable_alpha {
+                    self.tohsla()
+                } else {
+                    self.tohsl()
+                }
+            },
+            OutputType::ANSI => {
+                self.toansi()
+            },
+            OutputType::RGB => {
+                if enable_alpha {
+                    self.torgba()
+                } else {
+                    self.torgb()
+                }
+            },
+            OutputType::HEX => {
+                if enable_alpha {
+                    self.tohexa()
+                } else {
+                    self.tohex()
+                }
+            }
+        }
+    }
+
+    fn get_formatted_output_clr(&self, output_type: &OutputType, enable_alpha: bool) -> String {
+        return match output_type {
+            OutputType::HSL => {
+                if enable_alpha {
+                    format!("hsla({})", self.tohsla())
+                } else {
+                    format!("hsl({})", self.tohsl())
+                }
+            },
+            OutputType::HEX => {
+                if enable_alpha {
+                    format!("#{}", self.tohexa())
+                } else {
+                    format!("#{}", self.tohex())
+                }
+            },
+            OutputType::ANSI => {
+                format!("\\x1b[38;2;{}m", self.toansi())
+            },
+            OutputType::RGB => {
+                if enable_alpha {
+                    format!("rgba({})", self.torgba())
+                } else {
+                    format!("rgb({})", self.torgb())
+                }
+            }
+        }
+    }
+
     fn tohsl(&self) -> String {
         let (h, s, l) = self.hsl();
         return format!("{}, {}, {}", h, s, l);
+    }
+
+    fn tohsla(&self) -> String {
+        let (h, s, l, a) = self.hsla();
+        return format!("{}, {}, {}, {}", h, s, l, a);
     }
 
     fn torgb(&self) -> String {
         return format!("{}, {}, {}", self.r, self.g, self.b);
     }
 
+    fn torgba(&self) -> String {
+        return format!("{}, {}, {}, {}", self.r, self.g, self.b, self.a);
+    }
+
     fn tohex(&self) -> String {
         return format!("{:02x}{:02x}{:02x}", self.r as u8, self.g as u8, self.b as u8);
+    }
+
+    fn tohexa(&self) -> String {
+        return format!("{:02x}{:02x}{:02x}{:02x}", self.r as u8, self.g as u8, self.b as u8, self.a);
     }
 
     fn toansi(&self) -> String {
@@ -251,7 +327,7 @@ fn render_l(h: f32, s: f32, l: f32, hsquares: &Vec<ColorRepresentation>){
     println!("\x1b[0m");
 }
 
-fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresentation>, step: f32, selected_item: &SelectedItem, input_type: &InputType, output_type: &OutputType){
+fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresentation>, step: f32, selected_item: &SelectedItem, input_type: &InputType, output_type: &OutputType, enable_alpha: bool){
     let (h, s, l) = curr_color.hsl();
     if let SelectedItem::H = selected_item{
         print!("\x1b[32m");
@@ -271,7 +347,7 @@ fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresen
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
-    output_type.render_output(curr_color);
+    output_type.render_output(curr_color, enable_alpha);
 
 }
 
@@ -289,13 +365,8 @@ enum OutputType {
 }
 
 impl OutputType {
-    fn render_output(&self, curr_color: &ColorRepresentation) {
-        match self {
-            OutputType::HSL =>  println!("hsl{:?}", curr_color.hsl()),
-            OutputType::RGB => println!("rgb({}, {}, {})", curr_color.r, curr_color.g, curr_color.b),
-            OutputType::HEX => println!("#{}", curr_color.tohex()),
-            OutputType::ANSI => println!("\\x1b[38;2;{}m", curr_color.toansi()),
-        }
+    fn render_output(&self, curr_color: &ColorRepresentation, enable_alpha: bool) {
+        println!("{}", curr_color.get_formatted_output_clr(self, enable_alpha))
     }
 }
 
@@ -360,13 +431,15 @@ fn main() {
     let mut input_type = InputType::HSL;
     let mut output_type = OutputType::HSL;
 
+    let mut enable_alpha = false;
+
     loop {
 
         let (h, s, l) = curr_color.hsl();
 
         cls();
 
-        render_display(&curr_color, &hsquares, step, &selected_item, &input_type, &output_type);
+        render_display(&curr_color, &hsquares, step, &selected_item, &input_type, &output_type, enable_alpha);
 
 
         let bytes_read = reader.read(&mut buf).unwrap();
@@ -429,27 +502,20 @@ fn main() {
             }
         }
         else if data == "y" {
-            let b64 = general_purpose::STANDARD.encode(match output_type {
-                OutputType::HSL => format!("hsl({})", curr_color.tohsl()),
-                OutputType::HEX => format!("#{}", curr_color.tohex()),
-                OutputType::RGB => format!("rgb({})", curr_color.torgb()),
-                OutputType::ANSI => format!("\\x1b[38;2;{}m", curr_color.toansi()),
-            });
+            let b64 = general_purpose::STANDARD.encode(curr_color.get_formatted_output_clr(&output_type, enable_alpha));
             print!("\x1b]52;c;{}\x07", b64);
         }
         else if data == "Y" {
-            let b64 = general_purpose::STANDARD.encode(match output_type {
-                OutputType::HSL => format!("{}", curr_color.tohsl()),
-                OutputType::HEX => format!("{}", curr_color.tohex()),
-                OutputType::RGB => format!("{}", curr_color.torgb()),
-                OutputType::ANSI => format!("{}", curr_color.toansi()),
-            });
+            let b64 = general_purpose::STANDARD.encode(curr_color.get_output_clr(&output_type, enable_alpha));
             print!("\x1b]52;c;{}\x07", b64);
         }
 
         else if data == "p" {
             let data = read_clipboard(&mut reader);
             curr_color = ColorRepresentation::from_color(&data);
+        }
+        else if data == "a" {
+            enable_alpha = !enable_alpha;
         }
     }
     termios::tcsetattr(0, termios::TCSANOW, &tios_initial).unwrap();

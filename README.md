@@ -8,6 +8,12 @@ None of them have a way to select with HSL except for [this one](https://github.
 
 Currently there are no cli options.
 
+## Terms
+
+- Input format, the format used for inputting a color
+- Selection format, the way that selecting a color is done, eg: rgb, hsl
+- Output format, the color format used for outputting
+
 ## Controls
 
 | Control | action                                                   |
@@ -19,14 +25,27 @@ Currently there are no cli options.
 | y       | copy output                                              |
 | Y       | copy ONLY the output value with no extra formatting      |
 | p       | Paste color from clipboard (can be any supported format) |
+| a       | Enable/disable alpha channel                             |
 
-### Supported Paste Formats
+## Supported Input formats
+
 - `rgb(r, g, b)` Max: (255, 255, 255), Min: (0, 0, 0)
 - `rgba(r, g, b, a)` Max: (255, 255, 255, 255), Min: (0, 0, 0, 0)
 - `hsl(h, s, l)` Max: (360, 1, 1), Min: (0, 0, 0)
 - `hsla(h, s, l, a)` Max: (360, 1, 1, 255), Min: (0, 0, 0, 0)
 - `\x1b[38;2;R;G;Bm`
 - `R;G;B`
+
+## Supported Selection Formats
+
+- `hsl`
+
+## Supported Output Formats
+
+- `rgb(r, g, b)`
+- `hsl(h, s, l)`
+- `#RRGGBB`
+- `\x1b[38;2;R;G;Bm`
 
 # Goals
 
@@ -35,12 +54,13 @@ Currently there are no cli options.
 - [x] HSL output
 - [x] RGB output
 - [x] Hex output
-- [ ] Ability to enable/disable alpha channel
-- [x] Ability to swap between different outputs
-- [ ] Ability to swap between different selections
-- [ ] Ability to specify starting value with cli option
-- [x] Ability to copy output
-- [ ] Ability to convert any supported format to any other supported format via cli.
+- [x] Enable/disable alpha channel
+  - [ ] Modify alpha when enabled
+- [x] Swap between different outputs
+- [ ] Swap between different selections
+- [ ] Specify starting value with cli option
+- [x] Copy output
+- [ ] Convert any supported format to any other supported format via cli.
 
 ## Maybe goals
 
