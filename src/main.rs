@@ -183,15 +183,25 @@ impl ColorRepresentation {
         return (data.0, data.1, data.2, self.a);
     }
 
+    fn modify_a(&mut self, mut new_value: i32) {
+        if new_value < 0 {
+            new_value = 0;
+        }
+        if new_value > 255 {
+            new_value = 255;
+        }
+        self.a = new_value as u8;
+    }
+
     fn modify_hsl(&mut self, mut new_value: (f32, f32, f32)){
         if new_value.0 < 0.0 || new_value.0 > 360.0{
             new_value.0 = max!(min!(360.0, new_value.0), 0.0);
         }
         if new_value.1 < 0.0 || new_value.1 > 1.0 {
-            new_value.1 = max!(min!(1.0, new_value.0), 0.0);
+            new_value.1 = max!(min!(1.0, new_value.1), 0.0);
         }
         if new_value.2 < 0.0 || new_value.2 > 1.0 {
-            new_value.2 = max!(min!(1.0, new_value.0), 0.0);
+            new_value.2 = max!(min!(1.0, new_value.2), 0.0);
         }
         (self.r, self.g, self.b) = hsl2rgb(new_value.0, new_value.1, new_value.2);
     }
@@ -327,6 +337,16 @@ fn render_l(h: f32, s: f32, l: f32, hsquares: &Vec<ColorRepresentation>){
     println!("\x1b[0m");
 }
 
+fn render_a(hsquares: &Vec<ColorRepresentation>) {
+    print!("A");
+    let mut sat_color_rep = ColorRepresentation::from_color("#000000");
+    for i in 0..hsquares.len(){
+        print!("\x1b[38;2;{}m█", sat_color_rep.toansi());
+        sat_color_rep.modify_hsl((0.0, 0.0, (i as f32 / hsquares.len() as f32)))
+    }
+    println!("\x1b[0m");
+}
+
 fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresentation>, step: f32, selected_item: &SelectedItem, input_type: &InputType, output_type: &OutputType, enable_alpha: bool){
     let (h, s, l) = curr_color.hsl();
     if let SelectedItem::H = selected_item{
@@ -344,6 +364,10 @@ fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresen
     }
     render_l(h, s, l, hsquares);
     println!(" {}^", " ".repeat((curr_color.hsl().2 * 360.0 / step).floor() as usize));
+    if enable_alpha {
+        render_a(hsquares);
+        println!(" {}^", " ".repeat(((curr_color.a as f32 / 255.0 * 360.0) / step).floor() as usize));
+    }
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
@@ -354,7 +378,8 @@ fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresen
 enum SelectedItem {
     H,
     S,
-    L
+    L,
+    A
 }
 
 enum OutputType {
@@ -461,6 +486,7 @@ fn main() {
                     SelectedItem::H => curr_color.modify_hsl((360.0 * mult, s, l)),
                     SelectedItem::S => curr_color.modify_hsl((h, mult, l)),
                     SelectedItem::L => curr_color.modify_hsl((h, s, mult)),
+                    SelectedItem::A => curr_color.modify_a((255.0 * mult) as i32)
                 }
             }
         }
@@ -479,18 +505,24 @@ fn main() {
                     let mod_amount = 0.01 * amnt_mult;
                     curr_color.modify_hsl((h, s, l + mod_amount))
                 }
+                SelectedItem::A => {
+                    let mod_amount = 1.0 * amnt_mult;
+                    curr_color.modify_a((curr_color.a as f32 + mod_amount) as i32)
+                }
             }
         } else if data == "k" {
             selected_item = match selected_item {
-                SelectedItem::H => SelectedItem::L,
+                SelectedItem::H => if enable_alpha { SelectedItem::A } else { SelectedItem::L },
                 SelectedItem::S => SelectedItem::H,
                 SelectedItem::L => SelectedItem::S,
+                SelectedItem::A => SelectedItem::L,
             }
         } else if data == "j" {
             selected_item = match selected_item {
                 SelectedItem::H => SelectedItem::S,
                 SelectedItem::S => SelectedItem::L,
-                SelectedItem::L => SelectedItem::H,
+                SelectedItem::L => if enable_alpha { SelectedItem::A } else { SelectedItem::H },
+                SelectedItem::A => SelectedItem::H,
             }
         }
         else if data == "o" {

@@ -55,7 +55,7 @@ Currently there are no cli options.
 - [x] RGB output
 - [x] Hex output
 - [x] Enable/disable alpha channel
-  - [ ] Modify alpha when enabled
+  - [x] Modify alpha when enabled
 - [x] Swap between different outputs
 - [ ] Swap between different selections
 - [ ] Specify starting value with cli option
