@@ -66,12 +66,9 @@ Currently there are no cli options.
 
 - [x] HSL selection
 - [ ] RGB selection
-- [x] HSL output
-- [x] RGB output
-- [x] Hex output
-- [x] Enable/disable alpha channel
-  - [x] Modify alpha when enabled
 - [x] Swap between different outputs
+    - [ ] Let user pick from some kind of menu instead of cycling (or both)
+    - [ ] Option to display all outputs at once
 - [ ] Swap between different selections
 - [ ] Specify starting value with cli option
 - [x] Copy output
