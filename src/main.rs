@@ -195,7 +195,6 @@ impl ColorRepresentation {
                     (r, g, b) = (0.0, 0.0, 0.0);
                 }
             }
-            let color_dat = &clr[1..];
         }
         ColorRepresentation {
             r,
@@ -343,10 +342,6 @@ fn render_h(h: f32, s: f32, l: f32, square_count: u32){
         print!("\x1b[38;2;{}m█", sat_color_rep.toansi());
         sat_color_rep.modify_hsl(((i as f32 / square_count as f32) * 360.0, s, l))
     }
-    // for sq in hsquares {
-    //     print!("\x1b[38;2;{}m█", sq.toansi());
-    //     print!("\x1b[0m");
-    // }
     println!("\x1b[0m");
 }
 
@@ -383,25 +378,34 @@ fn render_a(square_count: u32) {
     println!("\x1b[0m");
 }
 
+fn render_carrot_on_current_line(col: usize) {
+    println!("\x1b[2K\x1b[{}C^", col);
+}
+
 fn render_hsl_display(curr_color: &ColorRepresentation, square_count: u32, step: f32, selected_item: &SelectedItemHSL, enable_alpha: bool){
     let (h, s, l) = curr_color.hsl();
+
     if let SelectedItemHSL::H = selected_item{
         print!("\x1b[32m");
     }
     render_h(h, s, l, square_count);
-    println!("\x1b[2K {}^", " ".repeat((curr_color.hsl().0 / step).floor() as usize));
+    //the +1 accounts for the H on the very left
+    render_carrot_on_current_line((curr_color.hsl().0 / step).floor() as usize + 1);
+
     if let SelectedItemHSL::S = selected_item {
         print!("\x1b[32m");
     }
     render_s(h, s, l, square_count);
     //everything is measured as a percentage of 360 to keep the relative positioning of everything
     //the same
-    println!("\x1b[2K {}^", " ".repeat((curr_color.hsl().1 * 360.0 / step).floor() as usize));
+    render_carrot_on_current_line((curr_color.hsl().1 * 360.0 / step).floor() as usize + 1);
+
     if let SelectedItemHSL::L = selected_item {
         print!("\x1b[32m");
     }
     render_l(h, s, l, square_count);
-    println!("\x1b[2K {}^", " ".repeat((curr_color.hsl().2 * 360.0 / step).floor() as usize));
+    render_carrot_on_current_line((curr_color.hsl().2 * 360.0 / step).floor() as usize + 1);
+
     if enable_alpha {
         if let SelectedItemHSL::A = selected_item{
             print!("\x1b[32m");
@@ -641,6 +645,7 @@ fn main() {
             curr_color = ColorRepresentation::from_color(&data);
         }
         else if data == "a" {
+            cls();
             enable_alpha = !enable_alpha;
         }
     }
