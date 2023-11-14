@@ -27,14 +27,26 @@ Currently there are no cli options.
 | p       | Paste color from clipboard (can be any supported format) |
 | a       | Enable/disable alpha channel                             |
 
+## Variable Key
+- 0 <= R <= 255 (red)
+- 0 <= G <= 255 (green)
+- 0 <= B <= 255 (blue)
+
+- 0 <= A <= 255 (alpha)
+
+- 0 <= H <= 255 (hue)
+- 0 <= S <= 100 (saturation)
+- 0 <= L <= 100 (lightness)
+
 ## Supported Input formats
 
-- `rgb(r, g, b)` Max: (255, 255, 255), Min: (0, 0, 0)
-- `rgba(r, g, b, a)` Max: (255, 255, 255, 255), Min: (0, 0, 0, 0)
-- `hsl(h, s, l)` Max: (360, 1, 1), Min: (0, 0, 0)
-- `hsla(h, s, l, a)` Max: (360, 1, 1, 255), Min: (0, 0, 0, 0)
+- `rgb(R, G, B)`
+- `rgba(R, G, B, A)`
+- `hsl(H, S, L)`
+- `hsla(H, S, L, A)`
 - `\x1b[38;2;R;G;Bm`
 - `R;G;B`
+- `#RGB` `#RGBA` `#RRGGBB` `#RRGGBBAA`
 
 ## Supported Selection Formats
 
@@ -42,9 +54,12 @@ Currently there are no cli options.
 
 ## Supported Output Formats
 
-- `rgb(r, g, b)`
-- `hsl(h, s, l)`
+- `rgb(R, G, B)`
+- `rgba(R, G, B, A)`
+- `hsl(H, S, L)`
+- `hsla(H, S, L, A)`
 - `#RRGGBB`
+- `#RRGGBBAA`
 - `\x1b[38;2;R;G;Bm`
 
 # Goals

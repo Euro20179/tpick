@@ -108,6 +108,12 @@ fn rgb2hsl(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32){
     return (h, s, l);
 }
 
+macro_rules! clamp {
+    ($min:expr, $value:expr, $max:expr) => {
+        max!(min!($max, $value), $min)
+    };
+}
+
 struct ColorRepresentation {
     r: f32,
     g: f32,
@@ -151,18 +157,28 @@ impl ColorRepresentation {
         else if clr.starts_with("hsla") {
             let mut items = clr[5..clr.len() - 1].split(",");
             let h: f32 = get_next(&mut items);
-            let s: f32 = get_next(&mut items);
-            let l: f32 = get_next(&mut items);
+            let s: f32 = get_next(&mut items) / 100.0;
+            let l: f32 = get_next(&mut items) / 100.0;
             a = items.next().unwrap().trim().parse().unwrap();
             (r, g, b) = hsl2rgb(h, s, l);
         }
         else if clr.starts_with("hsl") {
             let mut items = clr[4..clr.len() - 1].split(",");
             let h: f32 = get_next(&mut items);
-            let s: f32 = get_next(&mut items);
-            let l: f32 = get_next(&mut items);
+            let s: f32 = get_next(&mut items) / 100.0;
+            let l: f32 = get_next(&mut items) / 100.0;
             (r, g, b) = hsl2rgb(h, s, l);
         }
+        //#RGB or #RGBA or #RRGGBB or #RRGGBBAA
+        // else if clr.starts_with("#") && (clr.len() == 4 || clr.len() == 5 || clr.len() == 7 || clr.len() == 9) {
+        //     match clr.len() {
+        //         4 => {
+        //             let r = from_str(clr.as_bytes()[1], 16);
+        //         }
+        //         _ => todo!()
+        //     }
+        //     let color_dat = &clr[1..];
+        // }
         ColorRepresentation {
             r,
             g,
@@ -190,16 +206,17 @@ impl ColorRepresentation {
         self.a = new_value as u8;
     }
 
+    fn modify_rgb(&mut self, mut new_value: (f32, f32, f32)){
+        new_value.0 = clamp!(0.0, new_value.0, 255.0);
+        new_value.1 = clamp!(0.0, new_value.1, 255.0);
+        new_value.2 = clamp!(0.0, new_value.2, 255.0);
+        (self.r, self.g, self.b) = new_value;
+    }
+
     fn modify_hsl(&mut self, mut new_value: (f32, f32, f32)){
-        if new_value.0 < 0.0 || new_value.0 > 360.0{
-            new_value.0 = max!(min!(360.0, new_value.0), 0.0);
-        }
-        if new_value.1 < 0.0 || new_value.1 > 1.0 {
-            new_value.1 = max!(min!(1.0, new_value.1), 0.0);
-        }
-        if new_value.2 < 0.0 || new_value.2 > 1.0 {
-            new_value.2 = max!(min!(1.0, new_value.2), 0.0);
-        }
+        new_value.0 = clamp!(0.0, new_value.0, 360.0);
+        new_value.1 = clamp!(0.0, new_value.1, 1.0);
+        new_value.2 = clamp!(0.0, new_value.2, 1.0);
         (self.r, self.g, self.b) = hsl2rgb(new_value.0, new_value.1, new_value.2);
     }
 
@@ -263,12 +280,12 @@ impl ColorRepresentation {
 
     fn tohsl(&self) -> String {
         let (h, s, l) = self.hsl();
-        return format!("{}, {}, {}", h, s, l);
+        return format!("{}, {}, {}", h, s * 100.0, l * 100.0);
     }
 
     fn tohsla(&self) -> String {
         let (h, s, l, a) = self.hsla();
-        return format!("{}, {}, {}, {}", h, s, l, a);
+        return format!("{}, {}, {}, {}", h, s * 100.0, l * 100.0, a);
     }
 
     fn torgb(&self) -> String {
@@ -469,7 +486,7 @@ fn main() {
     let mut hsquares = vec![];
 
     for i in 0..((361.0 / step).ceil() as i32) {
-        hsquares.push(ColorRepresentation::from_color(&format!("hsl({}.0, 1.0, 0.5)", i as f32 * step)))
+        hsquares.push(ColorRepresentation::from_color(&format!("hsl({}.0, 100, 50)", i as f32 * step)))
     }
 
     let mut curr_color = ColorRepresentation::from_color("rgb(0, 255, 255)");
