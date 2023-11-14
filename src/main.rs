@@ -339,6 +339,7 @@ unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize){
 }
 
 fn render_h(h: f32, s: f32, l: f32, hsquares: &Vec<ColorRepresentation>){
+    print!("\x1b[0H");
     print!("H");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", 0.0, s, l));
     for i in 0..hsquares.len() {
@@ -353,6 +354,7 @@ fn render_h(h: f32, s: f32, l: f32, hsquares: &Vec<ColorRepresentation>){
 }
 
 fn render_s(h: f32, s: f32, l: f32, hsquares: &Vec<ColorRepresentation>){
+    print!("\x1b[3;0H");
     print!("S");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", h, 0.0, l));
     for i in 0..hsquares.len(){
@@ -363,6 +365,7 @@ fn render_s(h: f32, s: f32, l: f32, hsquares: &Vec<ColorRepresentation>){
 }
 
 fn render_l(h: f32, s: f32, l: f32, hsquares: &Vec<ColorRepresentation>){
+    print!("\x1b[5;0H");
     print!("L");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", h, s, 0.0));
     for i in 0..hsquares.len(){
@@ -373,6 +376,7 @@ fn render_l(h: f32, s: f32, l: f32, hsquares: &Vec<ColorRepresentation>){
 }
 
 fn render_a(hsquares: &Vec<ColorRepresentation>) {
+    print!("\x1b[7;0H");
     print!("A");
     let mut sat_color_rep = ColorRepresentation::from_color("#000000");
     for i in 0..hsquares.len(){
@@ -388,19 +392,19 @@ fn render_hsl_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepr
         print!("\x1b[32m");
     }
     render_h(h, s, l, hsquares);
-    println!(" {}^", " ".repeat((curr_color.hsl().0 / step).floor() as usize));
+    println!("\x1b[2K {}^", " ".repeat((curr_color.hsl().0 / step).floor() as usize));
     if let SelectedItemHSL::S = selected_item {
         print!("\x1b[32m");
     }
     render_s(h, s, l, hsquares);
     //everything is measured as a percentage of 360 to keep the relative positioning of everything
     //the same
-    println!(" {}^", " ".repeat((curr_color.hsl().1 * 360.0 / step).floor() as usize));
+    println!("\x1b[2K {}^", " ".repeat((curr_color.hsl().1 * 360.0 / step).floor() as usize));
     if let SelectedItemHSL::L = selected_item {
         print!("\x1b[32m");
     }
     render_l(h, s, l, hsquares);
-    println!(" {}^", " ".repeat((curr_color.hsl().2 * 360.0 / step).floor() as usize));
+    println!("\x1b[2K {}^", " ".repeat((curr_color.hsl().2 * 360.0 / step).floor() as usize));
     if enable_alpha {
         if let SelectedItemHSL::A = selected_item{
             print!("\x1b[32m");
@@ -411,7 +415,7 @@ fn render_hsl_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepr
 
 fn render_alpha_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresentation>, step: f32){
     render_a(hsquares);
-    println!(" {}^", " ".repeat(((curr_color.a as f32 / 255.0 * 360.0) / step).floor() as usize));
+    println!("\x1b[2K {}^", " ".repeat(((curr_color.a as f32 / 255.0 * 360.0) / step).floor() as usize));
 }
 
 fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresentation>, step: f32, input_type: &SelectionType, output_type: &OutputType, enable_alpha: bool){
@@ -422,6 +426,7 @@ fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresen
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
+    print!("\x1b[2K");
     output_type.render_output(curr_color, enable_alpha);
 
 }
@@ -517,11 +522,11 @@ fn main() {
 
     let mut enable_alpha = false;
 
+    cls();
+
     loop {
 
         let (h, s, l) = curr_color.hsl();
-
-        cls();
 
         render_display(&curr_color, &hsquares, step, &input_type, &output_type, enable_alpha);
 
