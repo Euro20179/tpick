@@ -208,6 +208,10 @@ impl ColorRepresentation {
         return rgb2hsl(self.r, self.g, self.b);
     }
 
+    fn rgb(&self) -> (f32, f32, f32) {
+        return (self.r, self.g, self.b);
+    }
+
     fn hsl_vec(&self) -> Vec<f32> {
         let hsl = rgb2hsl(self.r, self.g, self.b);
         return vec![hsl.0, hsl.1, hsl.2];
@@ -429,55 +433,34 @@ fn render_carrot_on_current_line(col: usize) {
     println!("\x1b[2K\x1b[{}C^", col);
 }
 
-fn render_hsl_display(curr_color: &ColorRepresentation, square_count: u32, step: f32, selected_item: u8, enable_alpha: bool){
-    let (h, s, l) = curr_color.hsl();
-
-    let colors = [render_h, render_s, render_l];
-    for i in 0..=2{
+fn render_sliders(color: (f32, f32, f32), alpha: u8, colors: [fn(f32, f32, f32, u32, f32); 3], square_count: u32, step: f32, selected_item: u8, enable_alpha: bool){
+    let (c1, c2, c3) = color;
+    for i in 0..=2 {
         if selected_item == i {
             print!("\x1b[32m");
         }
-        colors[i as usize](h, s, l, square_count, step);
+        colors[i as usize](c1, c2, c3, square_count, step);
     }
 
     if enable_alpha {
-        if selected_item == 3{
+        if selected_item == 3 {
             print!("\x1b[32m");
         }
-        render_alpha_display(curr_color, square_count, step);
+        render_alpha_display(alpha, square_count, step);
     }
 }
 
-fn render_rgb_display(curr_color: &ColorRepresentation, square_count: u32, step: f32, selected_item: u8, enable_alpha: bool){
-    let (r, g, b) = (curr_color.r, curr_color.g, curr_color.b);
-
-    let colors = [render_r, render_g, render_b];
-
-    for i in 0..=2{
-        if selected_item == i {
-            print!("\x1b[32m");
-            colors[i as usize](r, g, b, square_count, step);
-        }
-    }
-
-    if enable_alpha {
-        if selected_item == 3{
-            print!("\x1b[32m");
-        }
-        render_alpha_display(curr_color, square_count, step);
-    }
-}
-
-
-fn render_alpha_display(curr_color: &ColorRepresentation, square_count: u32, step: f32){
+fn render_alpha_display(alpha: u8, square_count: u32, step: f32){
     render_a(square_count);
-    println!("\x1b[2K {}^", " ".repeat(((curr_color.a as f32 / 255.0 * 360.0) / step).floor() as usize));
+    println!("\x1b[2K {}^", " ".repeat(((alpha as f32 / 255.0 * 360.0) / step).floor() as usize));
 }
 
 fn render_display(curr_color: &ColorRepresentation, square_count: u32, step: f32, input_type: &SelectionType, output_type: &OutputType, enable_alpha: bool){
     match input_type {
-        SelectionType::HSL(item) => render_hsl_display(curr_color, square_count, step, *item, enable_alpha),
-        SelectionType::RGB(item) => render_rgb_display(curr_color, square_count, step, *item, enable_alpha),
+        SelectionType::HSL(item) => {
+            render_sliders(curr_color.hsl(), curr_color.a, [render_h, render_s, render_l], square_count, step, *item, enable_alpha)
+        },
+        SelectionType::RGB(item) => render_sliders(curr_color.rgb(), curr_color.a, [render_r, render_g, render_b], square_count, step, *item, enable_alpha),
     }
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
