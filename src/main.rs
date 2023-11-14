@@ -1,5 +1,6 @@
 use std::io::{BufRead, Read};
 use std::os::fd::AsFd;
+use std::str::Split;
 
 use termios::Termios;
 
@@ -21,25 +22,6 @@ macro_rules! max {
             $i2
         }
     };
-}
-
-fn hue2rgb(p: f32, q: f32, mut t: f32) -> f32 {
-    if t < 0.0{
-        t += 1.0;
-    }
-    if t > 1.0 {
-        t -= 1.0;
-    }
-    if t < 1.0/6.0 {
-        return p + (q - p) * 6.0 * t;
-    }
-    if t < 1.0 / 2.0 {
-        return q as f32;
-    }
-    if t < 2.0/3.0 {
-        return p + (q - p) * (2.0/3.0 - t) * 6.0;
-    }
-    return p
 }
 
 fn hsl2rgb(mut h: f32, s: f32, l: f32) -> (f32, f32, f32) {
@@ -84,26 +66,6 @@ fn hsl2rgb(mut h: f32, s: f32, l: f32) -> (f32, f32, f32) {
     }
     return ((r * 255.0), (g * 255.0), (b * 255.0));
 }
-
-// fn hsl2rgb(mut h: f32, s: f32, l: f32) -> (u8, u8, u8) {
-//     h /= 360.0;
-//     let r: f32;
-//     let g: f32;
-//     let b: f32;
-//     if s == 0.0 {
-//         r = l;
-//         g = l;
-//         b = l;
-//     }
-//     else {
-//         let q = if l < 0.5 { l * (1.0 + s) } else { l + s - l * s };
-//         let p = 2.0 * l - q;
-//         r = hue2rgb(p, q, h + 1.0/3.0);
-//         g = hue2rgb(p, q, h);
-//         b = hue2rgb(p, q, h - 1.0/3.0);
-//     }
-//     return ((r * 255.0).round() as u8, (g * 255.0).round() as u8,  (b * 255.0).round() as u8)
-// }
 
 fn rgb2hsl(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32){
     r /= 255.0;
@@ -166,39 +128,39 @@ impl ColorRepresentation {
         let mut g: f32  = 0.0;
         let mut b: f32  = 0.0;
         let mut a = 1;
+        let get_next = |split: &mut Split<'_, &str>| split.next().unwrap().trim().parse().unwrap();
         if clr.contains(";"){
             let mut items = clr.split(";");
-            r = items.next().unwrap().trim().parse().unwrap();
-            g = items.next().unwrap().trim().parse().unwrap();
-            b = items.next().unwrap().trim().parse().unwrap();
+            r = get_next(&mut items);
+            g = get_next(&mut items);
+            b = get_next(&mut items);
         }
         else if clr.starts_with("rgba") {
             let mut items = clr[5..clr.len() - 1].split(",");
-            r = items.next().unwrap().trim().parse().unwrap();
-            g = items.next().unwrap().trim().parse().unwrap();
-            b = items.next().unwrap().trim().parse().unwrap();
+            r = get_next(&mut items);
+            g = get_next(&mut items);
+            b = get_next(&mut items);
             a = items.next().unwrap().trim().parse().unwrap();
         }
         else if clr.starts_with("rgb") {
             let mut items = clr[4..clr.len() - 1].split(",");
-            r = items.next().unwrap().trim().parse().unwrap();
-            g = items.next().unwrap().trim().parse().unwrap();
-            b = items.next().unwrap().trim().parse().unwrap();
+            r = get_next(&mut items);
+            g = get_next(&mut items);
+            b = get_next(&mut items);
         }
         else if clr.starts_with("hsla") {
             let mut items = clr[5..clr.len() - 1].split(",");
-            let h: f32 = items.next().unwrap().trim().parse().unwrap();
-            let s: f32 = items.next().unwrap().trim().parse().unwrap();
-            let l: f32 = items.next().unwrap().trim().parse().unwrap();
+            let h: f32 = get_next(&mut items);
+            let s: f32 = get_next(&mut items);
+            let l: f32 = get_next(&mut items);
             a = items.next().unwrap().trim().parse().unwrap();
             (r, g, b) = hsl2rgb(h, s, l);
         }
         else if clr.starts_with("hsl") {
             let mut items = clr[4..clr.len() - 1].split(",");
-            let h: f32 = items.next().unwrap().trim().parse().unwrap();
-            let s: f32 = items.next().unwrap().trim().parse().unwrap();
-            let n = items.next();
-            let l: f32 = n.unwrap().trim().parse().unwrap();
+            let h: f32 = get_next(&mut items);
+            let s: f32 = get_next(&mut items);
+            let l: f32 = get_next(&mut items);
             (r, g, b) = hsl2rgb(h, s, l);
         }
         ColorRepresentation {
@@ -224,6 +186,10 @@ impl ColorRepresentation {
             new_value.2 = max!(min!(0.99, new_value.0), 0.0);
         }
         (self.r, self.g, self.b) = hsl2rgb(new_value.0, new_value.1, new_value.2);
+    }
+
+    fn tohex(&self) -> String {
+        return format!("{:02x}{:02x}{:02x}", self.r as u8, self.g as u8, self.b as u8);
     }
 
     fn toansi(&self) -> String {
@@ -273,7 +239,7 @@ fn render_l(h: f32, s: f32, l: f32, hsquares: &Vec<ColorRepresentation>){
     println!("\x1b[0m");
 }
 
-fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresentation>, step: f32, selected_item: &SelectedItem){
+fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresentation>, step: f32, selected_item: &SelectedItem, input_type: &InputType, output_type: &OutputType){
     let (h, s, l) = curr_color.hsl();
     if let SelectedItem::H = selected_item{
         print!("\x1b[32m");
@@ -293,7 +259,7 @@ fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresen
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
-    println!("hsl{:?}", curr_color.hsl());
+    output_type.render_output(curr_color);
 
 }
 
@@ -301,6 +267,27 @@ enum SelectedItem {
     H,
     S,
     L
+}
+
+enum OutputType {
+    HSL,
+    RGB,
+    HEX
+}
+
+impl OutputType {
+    fn render_output(&self, curr_color: &ColorRepresentation) {
+        match self {
+            OutputType::HSL =>  println!("hsl{:?}", curr_color.hsl()),
+            OutputType::RGB => println!("rgb({}, {}, {})", curr_color.r, curr_color.g, curr_color.b),
+            OutputType::HEX => println!("#{}", curr_color.tohex()),
+        }
+    }
+}
+
+enum InputType{
+    HSL,
+    RGB
 }
 
 fn main() {
@@ -337,13 +324,16 @@ fn main() {
 
     let mut selected_item = SelectedItem::H;
 
+    let mut input_type = InputType::HSL;
+    let mut output_type = OutputType::HSL;
+
     loop {
 
         let (h, s, l) = curr_color.hsl();
 
         cls();
 
-        render_display(&curr_color, &hsquares, step, &selected_item);
+        render_display(&curr_color, &hsquares, step, &selected_item, &input_type, &output_type);
 
         let bytes_read = reader.read(&mut buf).unwrap();
 
@@ -371,15 +361,15 @@ fn main() {
         if data == "l" || data == "h" {
             match selected_item {
                 SelectedItem::H => {
-                    let mod_amount = 2.0 * amnt_mult;
+                    let mod_amount = 1.0 * amnt_mult;
                     curr_color.modify_hsl((h + mod_amount, s, l))
                 }
                 SelectedItem::S => {
-                    let mod_amount = 0.05 * amnt_mult;
+                    let mod_amount = 0.01 * amnt_mult;
                     curr_color.modify_hsl((h, s + mod_amount, l))
                 }
                 SelectedItem::L => {
-                    let mod_amount = 0.05 * amnt_mult;
+                    let mod_amount = 0.01 * amnt_mult;
                     curr_color.modify_hsl((h, s, l + mod_amount))
                 }
             }
@@ -394,6 +384,13 @@ fn main() {
                 SelectedItem::H => SelectedItem::S,
                 SelectedItem::S => SelectedItem::L,
                 SelectedItem::L => SelectedItem::H,
+            }
+        }
+        else if data == "o" {
+            output_type = match output_type {
+                OutputType::HSL => OutputType::RGB,
+                OutputType::RGB => OutputType::HEX,
+                OutputType::HEX => OutputType::HSL
             }
         }
     }

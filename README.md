@@ -22,9 +22,11 @@ Currently there are no cli options.
 * [x] HSL selection
 * [ ] RGB selection
 * [x] HSL output
-* [ ] RGB output
-* [ ] Hex output
-* [ ] Ability to swap between different selections/outputs
+* [x] RGB output
+* [x] Hex output
+* [ ] Ability to enable/disable alpha channel
+* [x] Ability to swap between different outputs
+* [ ] Ability to swap between different selections
 * [ ] Ability to specify starting value with cli option
 * [ ] Ability to copy output
 * [ ] Ability to convert any supported format to any other supported format via cli.
