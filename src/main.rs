@@ -97,7 +97,7 @@ fn rgb2hsl(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32){
         h = (r - g) / delta + 4.0;
     }
 
-    h = (h * 60.0).round();
+    h = h * 60.0;
 
     if h < 0.0 {
         h += 360.0;
@@ -205,7 +205,12 @@ impl ColorRepresentation {
     }
 
     fn hsl(&self) -> (f32, f32, f32) {
-        return rgb2hsl(self.r as f32, self.g as f32, self.b as f32);
+        return rgb2hsl(self.r, self.g, self.b);
+    }
+
+    fn hsl_vec(&self) -> Vec<f32> {
+        let hsl = rgb2hsl(self.r, self.g, self.b);
+        return vec![hsl.0, hsl.1, hsl.2];
     }
 
     fn hsla(&self) -> (f32, f32, f32, u8) {
@@ -334,7 +339,7 @@ unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize){
     libc::ioctl(fd, libc::TIOCGWINSZ, ws_struct);
 }
 
-fn render_r(r: f32, g: f32, b: f32, square_count: u32){
+fn render_r(r: f32, g: f32, b: f32, square_count: u32, step: f32){
     print!("\x1b[0H");
     print!("R");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("rgb({}, {}, {})", 0.0, g, b));
@@ -343,9 +348,10 @@ fn render_r(r: f32, g: f32, b: f32, square_count: u32){
         sat_color_rep.modify_rgb(((i as f32 / square_count as f32) * 255.0, g, b))
     }
     println!("\x1b[0m");
+    render_carrot_on_current_line((r / 255.0 * 360.0 / step).floor() as usize + 1);
 }
 
-fn render_g(r: f32, g: f32, b: f32, square_count: u32){
+fn render_g(r: f32, g: f32, b: f32, square_count: u32, step: f32){
     print!("\x1b[3;0H");
     print!("G");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("rgb({}, {}, {})", r, 0.0, b));
@@ -354,9 +360,10 @@ fn render_g(r: f32, g: f32, b: f32, square_count: u32){
         sat_color_rep.modify_rgb((r, (i as f32 / square_count as f32) * 255.0, b))
     }
     println!("\x1b[0m");
+    render_carrot_on_current_line((g / 255.0 * 360.0 / step).floor() as usize + 1);
 }
 
-fn render_b(r: f32, g: f32, b: f32, square_count: u32){
+fn render_b(r: f32, g: f32, b: f32, square_count: u32, step: f32){
     print!("\x1b[5;0H");
     print!("B");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("rgb({}, {}, {})", r, g, 0.0));
@@ -365,9 +372,10 @@ fn render_b(r: f32, g: f32, b: f32, square_count: u32){
         sat_color_rep.modify_rgb((r, g, (i as f32 / square_count as f32) * 255.0))
     }
     println!("\x1b[0m");
+    render_carrot_on_current_line((b / 255.0 * 360.0 / step).floor() as usize + 1);
 }
 
-fn render_h(h: f32, s: f32, l: f32, square_count: u32){
+fn render_h(h: f32, s: f32, l: f32, square_count: u32, step: f32){
     print!("\x1b[0H");
     print!("H");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", 0.0, s, l));
@@ -376,9 +384,11 @@ fn render_h(h: f32, s: f32, l: f32, square_count: u32){
         sat_color_rep.modify_hsl(((i as f32 / square_count as f32) * 360.0, s, l))
     }
     println!("\x1b[0m");
+    //the +1 accounts for the H on the very left
+    render_carrot_on_current_line((h / step).floor() as usize + 1);
 }
 
-fn render_s(h: f32, s: f32, l: f32, square_count: u32){
+fn render_s(h: f32, s: f32, l: f32, square_count: u32, step: f32){
     print!("\x1b[3;0H");
     print!("S");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", h, 0.0, l));
@@ -387,9 +397,12 @@ fn render_s(h: f32, s: f32, l: f32, square_count: u32){
         sat_color_rep.modify_hsl((h, (i as f32 / square_count as f32), l))
     }
     println!("\x1b[0m");
+    //everything is measured as a percentage of 360 to keep the relative positioning of everything
+    //the same
+    render_carrot_on_current_line((s * 360.0 / step).floor() as usize + 1);
 }
 
-fn render_l(h: f32, s: f32, l: f32, square_count: u32){
+fn render_l(h: f32, s: f32, l: f32, square_count: u32, step: f32){
     print!("\x1b[5;0H");
     print!("L");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", h, s, 0.0));
@@ -398,6 +411,7 @@ fn render_l(h: f32, s: f32, l: f32, square_count: u32){
         sat_color_rep.modify_hsl((h, s, (i as f32 / square_count as f32)))
     }
     println!("\x1b[0m");
+    render_carrot_on_current_line((l * 360.0 / step).floor() as usize + 1);
 }
 
 fn render_a(square_count: u32) {
@@ -418,26 +432,13 @@ fn render_carrot_on_current_line(col: usize) {
 fn render_hsl_display(curr_color: &ColorRepresentation, square_count: u32, step: f32, selected_item: u8, enable_alpha: bool){
     let (h, s, l) = curr_color.hsl();
 
-    if selected_item == 0{
-        print!("\x1b[32m");
+    let colors = [render_h, render_s, render_l];
+    for i in 0..=2{
+        if selected_item == i {
+            print!("\x1b[32m");
+        }
+        colors[i as usize](h, s, l, square_count, step);
     }
-    render_h(h, s, l, square_count);
-    //the +1 accounts for the H on the very left
-    render_carrot_on_current_line((curr_color.hsl().0 / step).floor() as usize + 1);
-
-    if selected_item == 1{
-        print!("\x1b[32m");
-    }
-    render_s(h, s, l, square_count);
-    //everything is measured as a percentage of 360 to keep the relative positioning of everything
-    //the same
-    render_carrot_on_current_line((curr_color.hsl().1 * 360.0 / step).floor() as usize + 1);
-
-    if selected_item == 2{
-        print!("\x1b[32m");
-    }
-    render_l(h, s, l, square_count);
-    render_carrot_on_current_line((curr_color.hsl().2 * 360.0 / step).floor() as usize + 1);
 
     if enable_alpha {
         if selected_item == 3{
@@ -450,23 +451,14 @@ fn render_hsl_display(curr_color: &ColorRepresentation, square_count: u32, step:
 fn render_rgb_display(curr_color: &ColorRepresentation, square_count: u32, step: f32, selected_item: u8, enable_alpha: bool){
     let (r, g, b) = (curr_color.r, curr_color.g, curr_color.b);
 
-    if selected_item == 0{
-        print!("\x1b[32m");
-    }
-    render_r(r, g, b, square_count);
-    render_carrot_on_current_line((curr_color.r / 255.0 * 360.0 / step).floor() as usize + 1);
+    let colors = [render_r, render_g, render_b];
 
-    if selected_item == 1{
-        print!("\x1b[32m");
+    for i in 0..=2{
+        if selected_item == i {
+            print!("\x1b[32m");
+            colors[i as usize](r, g, b, square_count, step);
+        }
     }
-    render_g(r, g, b, square_count);
-    render_carrot_on_current_line((curr_color.g / 255.0 * 360.0 / step).floor() as usize + 1);
-
-    if selected_item == 2{
-        print!("\x1b[32m");
-    }
-    render_b(r, g, b, square_count);
-    render_carrot_on_current_line((curr_color.b / 255.0 * 360.0 / step).floor() as usize + 1);
 
     if enable_alpha {
         if selected_item == 3{
