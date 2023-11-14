@@ -344,7 +344,6 @@ unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize){
 }
 
 fn render_r(r: f32, g: f32, b: f32, square_count: u32, step: f32){
-    print!("\x1b[0H");
     print!("R");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("rgb({}, {}, {})", 0.0, g, b));
     for i in 0..square_count {
@@ -356,7 +355,6 @@ fn render_r(r: f32, g: f32, b: f32, square_count: u32, step: f32){
 }
 
 fn render_g(r: f32, g: f32, b: f32, square_count: u32, step: f32){
-    print!("\x1b[3;0H");
     print!("G");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("rgb({}, {}, {})", r, 0.0, b));
     for i in 0..square_count {
@@ -368,7 +366,6 @@ fn render_g(r: f32, g: f32, b: f32, square_count: u32, step: f32){
 }
 
 fn render_b(r: f32, g: f32, b: f32, square_count: u32, step: f32){
-    print!("\x1b[5;0H");
     print!("B");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("rgb({}, {}, {})", r, g, 0.0));
     for i in 0..square_count {
@@ -380,7 +377,6 @@ fn render_b(r: f32, g: f32, b: f32, square_count: u32, step: f32){
 }
 
 fn render_h(h: f32, s: f32, l: f32, square_count: u32, step: f32){
-    print!("\x1b[0H");
     print!("H");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", 0.0, s, l));
     for i in 0..square_count {
@@ -393,7 +389,6 @@ fn render_h(h: f32, s: f32, l: f32, square_count: u32, step: f32){
 }
 
 fn render_s(h: f32, s: f32, l: f32, square_count: u32, step: f32){
-    print!("\x1b[3;0H");
     print!("S");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", h, 0.0, l));
     for i in 0..square_count{
@@ -407,7 +402,6 @@ fn render_s(h: f32, s: f32, l: f32, square_count: u32, step: f32){
 }
 
 fn render_l(h: f32, s: f32, l: f32, square_count: u32, step: f32){
-    print!("\x1b[5;0H");
     print!("L");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", h, s, 0.0));
     for i in 0..square_count{
@@ -419,7 +413,6 @@ fn render_l(h: f32, s: f32, l: f32, square_count: u32, step: f32){
 }
 
 fn render_a(square_count: u32) {
-    print!("\x1b[7;0H");
     print!("A");
     let mut sat_color_rep = ColorRepresentation::from_color("#000000");
     for i in 0..square_count{
@@ -436,6 +429,7 @@ fn render_carrot_on_current_line(col: usize) {
 fn render_sliders(color: (f32, f32, f32), alpha: u8, colors: [fn(f32, f32, f32, u32, f32); 3], square_count: u32, step: f32, selected_item: u8, enable_alpha: bool){
     let (c1, c2, c3) = color;
     for i in 0..=2 {
+        print!("\x1b[{};0H", i * 2 + 1);
         if selected_item == i {
             print!("\x1b[32m");
         }
@@ -443,6 +437,7 @@ fn render_sliders(color: (f32, f32, f32), alpha: u8, colors: [fn(f32, f32, f32, 
     }
 
     if enable_alpha {
+        print!("\x1b[7;0H");
         if selected_item == 3 {
             print!("\x1b[32m");
         }

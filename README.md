@@ -77,9 +77,6 @@ Currently there are no cli options.
 - [ ] Specify starting value with cli option
 - [x] Copy output
 - [ ] Convert any supported format to any other supported format via cli.
-- [ ] Less hardcoding of positions of elements in code,
-  - eg: `render_l` always does `print!("\x1b[5;0H")`
-  - it should be based on the position of the previous element instead of `5`
 
 ## Maybe goals
 
