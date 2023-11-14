@@ -365,7 +365,7 @@ fn render_hsl_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepr
     println!(" {}^", " ".repeat((curr_color.hsl().2 * 360.0 / step).floor() as usize));
     if enable_alpha {
         if let SelectedItemHSL::A = selected_item{
-            print!("\x1b[32m]");
+            print!("\x1b[32m");
         }
         render_alpha_display(curr_color, hsquares, step);
     }
