@@ -125,7 +125,14 @@ impl ColorRepresentation {
         let mut b: f32  = 0.0;
         let mut a = 1;
         let get_next = |split: &mut Split<'_, &str>| split.next().unwrap().trim().parse().unwrap();
-        if clr.contains(";"){
+        if clr.starts_with("\\x1b") {
+            //\x1b[38;2;
+            let mut items = clr[10..clr.len() - 1].split(";");
+            r = get_next(&mut items);
+            g = get_next(&mut items);
+            b = get_next(&mut items);
+        }
+        else if clr.contains(";"){
             let mut items = clr.split(";");
             r = get_next(&mut items);
             g = get_next(&mut items);
@@ -277,7 +284,8 @@ enum SelectedItem {
 enum OutputType {
     HSL,
     RGB,
-    HEX
+    HEX,
+    ANSI
 }
 
 impl OutputType {
@@ -286,6 +294,7 @@ impl OutputType {
             OutputType::HSL =>  println!("hsl{:?}", curr_color.hsl()),
             OutputType::RGB => println!("rgb({}, {}, {})", curr_color.r, curr_color.g, curr_color.b),
             OutputType::HEX => println!("#{}", curr_color.tohex()),
+            OutputType::ANSI => println!("\\x1b[38;2;{}m", curr_color.toansi()),
         }
     }
 }
@@ -293,6 +302,25 @@ impl OutputType {
 enum InputType{
     HSL,
     RGB
+}
+
+fn read_clipboard(reader: &mut std::io::Stdin) -> String{
+    println!("\x1b]52;c;?\x07");
+
+    let mut clip_buf = String::new();
+    let mut b = [0; 1];
+    loop{
+        reader.read_exact(&mut b).unwrap();
+        if b[0] == 7{
+            break;
+        }
+        clip_buf += &String::from(b[0] as char);
+    }
+
+    let clip_data = clip_buf.split(";").nth(2).unwrap();
+
+    return String::from_utf8(general_purpose::STANDARD.decode(clip_data).unwrap()).unwrap();
+
 }
 
 fn main() {
@@ -339,6 +367,7 @@ fn main() {
         cls();
 
         render_display(&curr_color, &hsquares, step, &selected_item, &input_type, &output_type);
+
 
         let bytes_read = reader.read(&mut buf).unwrap();
 
@@ -395,7 +424,8 @@ fn main() {
             output_type = match output_type {
                 OutputType::HSL => OutputType::RGB,
                 OutputType::RGB => OutputType::HEX,
-                OutputType::HEX => OutputType::HSL
+                OutputType::HEX => OutputType::ANSI,
+                OutputType::ANSI => OutputType::HSL,
             }
         }
         else if data == "y" {
@@ -403,6 +433,7 @@ fn main() {
                 OutputType::HSL => format!("hsl({})", curr_color.tohsl()),
                 OutputType::HEX => format!("#{}", curr_color.tohex()),
                 OutputType::RGB => format!("rgb({})", curr_color.torgb()),
+                OutputType::ANSI => format!("\\x1b[38;2;{}m", curr_color.toansi()),
             });
             print!("\x1b]52;c;{}\x07", b64);
         }
@@ -411,8 +442,14 @@ fn main() {
                 OutputType::HSL => format!("{}", curr_color.tohsl()),
                 OutputType::HEX => format!("{}", curr_color.tohex()),
                 OutputType::RGB => format!("{}", curr_color.torgb()),
+                OutputType::ANSI => format!("{}", curr_color.toansi()),
             });
             print!("\x1b]52;c;{}\x07", b64);
+        }
+
+        else if data == "p" {
+            let data = read_clipboard(&mut reader);
+            curr_color = ColorRepresentation::from_color(&data);
         }
     }
     termios::tcsetattr(0, termios::TCSANOW, &tios_initial).unwrap();

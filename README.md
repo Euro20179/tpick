@@ -10,14 +10,23 @@ Currently there are no cli options.
 
 ## Controls
 
-| Control | action                                              |
-| ------- | --------------------------------------------------- |
-| l       | increase current value                              |
-| h       | decrease current value                              |
-| 1-9     | set current value to 10%-90%                        |
-| o       | cycle output                                        |
-| y       | copy output                                         |
-| Y       | copy ONLY the output value with no extra formatting |
+| Control | action                                                   |
+| ------- | -------------------------------------------------------- |
+| l       | increase current value                                   |
+| h       | decrease current value                                   |
+| 1-9     | set current value to 10%-90%                             |
+| o       | cycle output                                             |
+| y       | copy output                                              |
+| Y       | copy ONLY the output value with no extra formatting      |
+| p       | Paste color from clipboard (can be any supported format) |
+
+### Supported Paste Formats
+- `rgb(r, g, b)` Max: (255, 255, 255), Min: (0, 0, 0)
+- `rgba(r, g, b, a)` Max: (255, 255, 255, 255), Min: (0, 0, 0, 0)
+- `hsl(h, s, l)` Max: (360, 1, 1), Min: (0, 0, 0)
+- `hsla(h, s, l, a)` Max: (360, 1, 1, 255), Min: (0, 0, 0, 0)
+- `\x1b[38;2;R;G;Bm`
+- `R;G;B`
 
 # Goals
 
