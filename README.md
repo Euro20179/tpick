@@ -77,6 +77,8 @@ Currently there are no cli options.
 - [ ] Specify starting value with cli option
 - [x] Copy output
 - [ ] Convert any supported format to any other supported format via cli.
+- [ ] Pressing a key to input a color
+- [ ] Cli options for setting default Input/Selection/Output formats
 
 ## Maybe goals
 
