@@ -170,15 +170,36 @@ impl ColorRepresentation {
             (r, g, b) = hsl2rgb(h, s, l);
         }
         //#RGB or #RGBA or #RRGGBB or #RRGGBBAA
-        // else if clr.starts_with("#") && (clr.len() == 4 || clr.len() == 5 || clr.len() == 7 || clr.len() == 9) {
-        //     match clr.len() {
-        //         4 => {
-        //             let r = from_str(clr.as_bytes()[1], 16);
-        //         }
-        //         _ => todo!()
-        //     }
-        //     let color_dat = &clr[1..];
-        // }
+        else if clr.starts_with("#") && (clr.len() == 4 || clr.len() == 5 || clr.len() == 7 || clr.len() == 9) {
+            match clr.len() {
+                4 => {
+                    r = (i64::from_str_radix(&clr[1..2], 16).unwrap() as f32).powi(2);
+                    g = (i64::from_str_radix(&clr[2..3], 16).unwrap() as f32).powi(2);
+                    b = (i64::from_str_radix(&clr[3..4], 16).unwrap() as f32).powi(2);
+                }
+                5 => {
+                    r = (i64::from_str_radix(&clr[1..2], 16).unwrap() as f32).powi(2);
+                    g = (i64::from_str_radix(&clr[2..3], 16).unwrap() as f32).powi(2);
+                    b = (i64::from_str_radix(&clr[3..4], 16).unwrap() as f32).powi(2);
+                    a = (i64::from_str_radix(&clr[4..5], 16).unwrap()).pow(2) as u8;
+                }
+                7 => {
+                    r = i64::from_str_radix(&clr[1..3], 16).unwrap() as f32;
+                    g = i64::from_str_radix(&clr[3..5], 16).unwrap() as f32;
+                    b = i64::from_str_radix(&clr[5..7], 16).unwrap() as f32;
+                }
+                9 => {
+                    r = i64::from_str_radix(&clr[1..3], 16).unwrap() as f32;
+                    g = i64::from_str_radix(&clr[3..5], 16).unwrap() as f32;
+                    b = i64::from_str_radix(&clr[5..7], 16).unwrap() as f32;
+                    a = i64::from_str_radix(&clr[7..9], 16).unwrap() as u8;
+                }
+                _ => {
+                    (r, g, b) = (0.0, 0.0, 0.0);
+                }
+            }
+            let color_dat = &clr[1..];
+        }
         ColorRepresentation {
             r,
             g,
