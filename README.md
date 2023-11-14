@@ -20,7 +20,8 @@ Currently there are no cli options.
 | ------- | -------------------------------------------------------- |
 | l       | increase current value                                   |
 | h       | decrease current value                                   |
-| 1-9     | set current value to 10%-90%                             |
+| 0-9     | set current value to 0%-90%                              |
+| $       | set current value to 100%                                |
 | o       | cycle output                                             |
 | y       | copy output                                              |
 | Y       | copy ONLY the output value with no extra formatting      |
@@ -28,6 +29,7 @@ Currently there are no cli options.
 | a       | Enable/disable alpha channel                             |
 
 ## Variable Key
+
 - 0 <= R <= 255 (red)
 - 0 <= G <= 255 (green)
 - 0 <= B <= 255 (blue)
@@ -67,12 +69,14 @@ Currently there are no cli options.
 - [x] HSL selection
 - [ ] RGB selection
 - [x] Swap between different outputs
-    - [ ] Let user pick from some kind of menu instead of cycling (or both)
-    - [ ] Option to display all outputs at once
+  - [ ] Let user pick from some kind of menu instead of cycling (or both)
+  - [ ] Option to display all outputs at once
 - [ ] Swap between different selections
 - [ ] Specify starting value with cli option
 - [x] Copy output
 - [ ] Convert any supported format to any other supported format via cli.
+- [ ] Less hardcoding of positions of elements in code,
+  - eg: `render_l` always does `print!("\x1b[5;0H")`
 
 ## Maybe goals
 

@@ -543,7 +543,7 @@ fn main() {
             1.0
         } else { -1.0 };
 
-        for i in 1..=9 {
+        for i in 0..=9 {
             if data == i.to_string() {
                 let mult = i as f32 / 10.0;
                 match input_type {
@@ -557,6 +557,21 @@ fn main() {
                     },
                     _ => todo!()
                 }
+            }
+        }
+
+        if data == "$" {
+            let mult = 1.0;
+            match input_type {
+                SelectionType::HSL(selected_item) => {
+                    match selected_item {
+                        SelectedItemHSL::H => curr_color.modify_hsl((360.0 * mult, s, l)),
+                        SelectedItemHSL::S => curr_color.modify_hsl((h, mult, l)),
+                        SelectedItemHSL::L => curr_color.modify_hsl((h, s, mult)),
+                        SelectedItemHSL::A => curr_color.modify_a((255.0 * mult) as i32)
+                    }
+                },
+                _ => todo!()
             }
         }
 
