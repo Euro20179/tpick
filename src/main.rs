@@ -347,26 +347,42 @@ fn render_a(hsquares: &Vec<ColorRepresentation>) {
     println!("\x1b[0m");
 }
 
-fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresentation>, step: f32, selected_item: &SelectedItem, input_type: &InputType, output_type: &OutputType, enable_alpha: bool){
+fn render_hsl_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresentation>, step: f32, selected_item: &SelectedItemHSL, enable_alpha: bool){
     let (h, s, l) = curr_color.hsl();
-    if let SelectedItem::H = selected_item{
+    if let SelectedItemHSL::H = selected_item{
         print!("\x1b[32m");
     }
     render_h(h, s, l, hsquares);
     println!(" {}^", " ".repeat((curr_color.hsl().0 / step).floor() as usize));
-    if let SelectedItem::S = selected_item {
+    if let SelectedItemHSL::S = selected_item {
         print!("\x1b[32m");
     }
     render_s(h, s, l, hsquares);
+    //everything is measured as a percentage of 360 to keep the relative positioning of everything
+    //the same
     println!(" {}^", " ".repeat((curr_color.hsl().1 * 360.0 / step).floor() as usize));
-    if let SelectedItem::L = selected_item {
+    if let SelectedItemHSL::L = selected_item {
         print!("\x1b[32m");
     }
     render_l(h, s, l, hsquares);
     println!(" {}^", " ".repeat((curr_color.hsl().2 * 360.0 / step).floor() as usize));
     if enable_alpha {
-        render_a(hsquares);
-        println!(" {}^", " ".repeat(((curr_color.a as f32 / 255.0 * 360.0) / step).floor() as usize));
+        if let SelectedItemHSL::A = selected_item{
+            print!("\x1b[32m]");
+        }
+        render_alpha_display(curr_color, hsquares, step);
+    }
+}
+
+fn render_alpha_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresentation>, step: f32){
+    render_a(hsquares);
+    println!(" {}^", " ".repeat(((curr_color.a as f32 / 255.0 * 360.0) / step).floor() as usize));
+}
+
+fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresentation>, step: f32, input_type: &SelectionType, output_type: &OutputType, enable_alpha: bool){
+    match input_type {
+        SelectionType::HSL(item) => render_hsl_display(curr_color, hsquares, step, item, enable_alpha),
+        _ => todo!()
     }
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
     println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
@@ -375,11 +391,26 @@ fn render_display(curr_color: &ColorRepresentation, hsquares: &Vec<ColorRepresen
 
 }
 
-enum SelectedItem {
+#[derive(Copy, Clone)]
+enum SelectedItemHSL {
     H,
     S,
     L,
     A
+}
+
+#[derive(Copy, Clone)]
+enum SelectedItemRGB {
+    H,
+    S,
+    L,
+    A
+}
+
+#[derive(Copy, Clone)]
+enum SelectionType{
+    HSL(SelectedItemHSL),
+    RGB(SelectedItemRGB)
 }
 
 enum OutputType {
@@ -393,11 +424,6 @@ impl OutputType {
     fn render_output(&self, curr_color: &ColorRepresentation, enable_alpha: bool) {
         println!("{}", curr_color.get_formatted_output_clr(self, enable_alpha))
     }
-}
-
-enum InputType{
-    HSL,
-    RGB
 }
 
 fn read_clipboard(reader: &mut std::io::Stdin) -> String{
@@ -451,9 +477,7 @@ fn main() {
 
     let mut curr_color = ColorRepresentation::from_color("rgb(0, 255, 255)");
 
-    let mut selected_item = SelectedItem::H;
-
-    let mut input_type = InputType::HSL;
+    let mut input_type = SelectionType::HSL(SelectedItemHSL::H);
     let mut output_type = OutputType::HSL;
 
     let mut enable_alpha = false;
@@ -464,7 +488,7 @@ fn main() {
 
         cls();
 
-        render_display(&curr_color, &hsquares, step, &selected_item, &input_type, &output_type, enable_alpha);
+        render_display(&curr_color, &hsquares, step, &input_type, &output_type, enable_alpha);
 
 
         let bytes_read = reader.read(&mut buf).unwrap();
@@ -482,48 +506,62 @@ fn main() {
         for i in 1..=9 {
             if data == i.to_string() {
                 let mult = i as f32 / 10.0;
-                match selected_item {
-                    SelectedItem::H => curr_color.modify_hsl((360.0 * mult, s, l)),
-                    SelectedItem::S => curr_color.modify_hsl((h, mult, l)),
-                    SelectedItem::L => curr_color.modify_hsl((h, s, mult)),
-                    SelectedItem::A => curr_color.modify_a((255.0 * mult) as i32)
+                match input_type {
+                    SelectionType::HSL(selected_item) => {
+                        match selected_item {
+                            SelectedItemHSL::H => curr_color.modify_hsl((360.0 * mult, s, l)),
+                            SelectedItemHSL::S => curr_color.modify_hsl((h, mult, l)),
+                            SelectedItemHSL::L => curr_color.modify_hsl((h, s, mult)),
+                            SelectedItemHSL::A => curr_color.modify_a((255.0 * mult) as i32)
+                        }
+                    },
+                    _ => todo!()
                 }
             }
         }
 
         if data == "l" || data == "h" {
-            match selected_item {
-                SelectedItem::H => {
-                    let mod_amount = 1.0 * amnt_mult;
-                    curr_color.modify_hsl((h + mod_amount, s, l))
-                }
-                SelectedItem::S => {
-                    let mod_amount = 0.01 * amnt_mult;
-                    curr_color.modify_hsl((h, s + mod_amount, l))
-                }
-                SelectedItem::L => {
-                    let mod_amount = 0.01 * amnt_mult;
-                    curr_color.modify_hsl((h, s, l + mod_amount))
-                }
-                SelectedItem::A => {
-                    let mod_amount = 1.0 * amnt_mult;
-                    curr_color.modify_a((curr_color.a as f32 + mod_amount) as i32)
-                }
+            match input_type {
+                SelectionType::HSL(selected_item) => match selected_item {
+                    SelectedItemHSL::H => {
+                        let mod_amount = 1.0 * amnt_mult;
+                        curr_color.modify_hsl((h + mod_amount, s, l))
+                    }
+                    SelectedItemHSL::S => {
+                        let mod_amount = 0.01 * amnt_mult;
+                        curr_color.modify_hsl((h, s + mod_amount, l))
+                    }
+                    SelectedItemHSL::L => {
+                        let mod_amount = 0.01 * amnt_mult;
+                        curr_color.modify_hsl((h, s, l + mod_amount))
+                    }
+                    SelectedItemHSL::A => {
+                        let mod_amount = 1.0 * amnt_mult;
+                        curr_color.modify_a((curr_color.a as f32 + mod_amount) as i32)
+                    }
+                },
+                _ => todo!()
             }
         } else if data == "k" {
-            selected_item = match selected_item {
-                SelectedItem::H => if enable_alpha { SelectedItem::A } else { SelectedItem::L },
-                SelectedItem::S => SelectedItem::H,
-                SelectedItem::L => SelectedItem::S,
-                SelectedItem::A => SelectedItem::L,
+            input_type = match input_type {
+                SelectionType::HSL(selected_item) => SelectionType::HSL(match selected_item {
+                    SelectedItemHSL::H => if enable_alpha { SelectedItemHSL::A } else { SelectedItemHSL::L },
+                    SelectedItemHSL::S => SelectedItemHSL::H,
+                    SelectedItemHSL::L => SelectedItemHSL::S,
+                    SelectedItemHSL::A => SelectedItemHSL::L,
+                }),
+                _ => todo!()
             }
         } else if data == "j" {
-            selected_item = match selected_item {
-                SelectedItem::H => SelectedItem::S,
-                SelectedItem::S => SelectedItem::L,
-                SelectedItem::L => if enable_alpha { SelectedItem::A } else { SelectedItem::H },
-                SelectedItem::A => SelectedItem::H,
-            }
+            input_type = SelectionType::HSL(match input_type {
+                SelectionType::HSL(selected_item) => match selected_item{
+                    SelectedItemHSL::H => SelectedItemHSL::S,
+                    SelectedItemHSL::S => SelectedItemHSL::L,
+                    SelectedItemHSL::L => if enable_alpha { SelectedItemHSL::A } else { SelectedItemHSL::H },
+                    SelectedItemHSL::A => SelectedItemHSL::H
+                },
+                _ => todo!()
+            })
         }
         else if data == "o" {
             output_type = match output_type {
