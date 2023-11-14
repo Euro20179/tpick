@@ -36,7 +36,7 @@ Currently there are no cli options.
 
 - 0 <= A <= 255 (alpha)
 
-- 0 <= H <= 255 (hue)
+- 0 <= H <= 360 (hue)
 - 0 <= S <= 100 (saturation)
 - 0 <= L <= 100 (lightness)
 
