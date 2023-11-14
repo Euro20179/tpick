@@ -22,13 +22,14 @@ Currently there are no cli options.
 | h       | decrease current value                                   |
 | 0-9     | set current value to 0%-90%                              |
 | $       | set current value to 100%                                |
-| o       | cycle output                                             |
+| o       | cycle output format                                      |
+| i       | cycle input format                                       |
 | y       | copy output                                              |
 | Y       | copy ONLY the output value with no extra formatting      |
 | p       | Paste color from clipboard (can be any supported format) |
 | a       | Enable/disable alpha channel                             |
 
-## Variable Key
+## Variables
 
 - 0 <= R <= 255 (red)
 - 0 <= G <= 255 (green)
@@ -53,6 +54,7 @@ Currently there are no cli options.
 ## Supported Selection Formats
 
 - `hsl`
+- `rgb`
 
 ## Supported Output Formats
 
@@ -66,17 +68,18 @@ Currently there are no cli options.
 
 # Goals
 
-- [x] HSL selection
-- [ ] RGB selection
+- [x] Swap between different selections
+    - [x] HSL selection
+    - [x] RGB selection
 - [x] Swap between different outputs
   - [ ] Let user pick from some kind of menu instead of cycling (or both)
   - [ ] Option to display all outputs at once
-- [ ] Swap between different selections
 - [ ] Specify starting value with cli option
 - [x] Copy output
 - [ ] Convert any supported format to any other supported format via cli.
 - [ ] Less hardcoding of positions of elements in code,
   - eg: `render_l` always does `print!("\x1b[5;0H")`
+  - it should be based on the position of the previous element instead of `5`
 
 ## Maybe goals
 
