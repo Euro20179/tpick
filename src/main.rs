@@ -1,3 +1,5 @@
+use base64::engine::general_purpose;
+use base64::prelude::*;
 use std::io::{BufRead, Read};
 use std::os::fd::AsFd;
 use std::str::Split;
@@ -71,7 +73,6 @@ fn rgb2hsl(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32){
     r /= 255.0;
     g /= 255.0;
     b /= 255.0;
-
     let min = min!(min!(r, g), b);
     let max = max!(max!(r, g), b);
 
@@ -85,33 +86,28 @@ fn rgb2hsl(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32){
 
     if delta == 0.0 {
         s = 0.0;
+        h = 0.0;
     }
     else {
+        if r == max {
+            h = (g - b) / delta * 60.0;
+        }
+        else if g == max {
+            h = (b - r) / delta * 60.0 + 120.0;
+        }
+        else {
+            h = (r - g) / delta * 60.0 + 240.0;
+        }
+
+        h %= 360.0;
+
         s = if l <= 0.5 {
             delta / (max + min)
         } else {
-            delta / (2.0 - max - min)
+            delta / (2.0 - (max + min))
         }
     }
 
-    if r == max {
-        h = ((g - b) / 6.0) / delta;
-    }
-    else if g == max {
-        h = (1.0 / 3.0) + ((b - r) / 6.0) / delta;
-    }
-    else {
-        h = (2.0 / 3.0) + ((r - g) / 6.0) / delta;
-    }
-
-    if h < 0.0 {
-        h += 1.0;
-    }
-    if h > 1.0 {
-        h -= 1.0;
-    }
-
-    h = (h * 360.0).floor();
     return (h, s, l);
 }
 
@@ -183,9 +179,18 @@ impl ColorRepresentation {
             new_value.1 = max!(min!(1.0, new_value.0), 0.0);
         }
         if new_value.2 < 0.0 || new_value.2 > 1.0 {
-            new_value.2 = max!(min!(0.99, new_value.0), 0.0);
+            new_value.2 = max!(min!(1.0, new_value.0), 0.0);
         }
         (self.r, self.g, self.b) = hsl2rgb(new_value.0, new_value.1, new_value.2);
+    }
+
+    fn tohsl(&self) -> String {
+        let (h, s, l) = self.hsl();
+        return format!("{}, {}, {}", h, s, l);
+    }
+
+    fn torgb(&self) -> String {
+        return format!("{}, {}, {}", self.r, self.g, self.b);
     }
 
     fn tohex(&self) -> String {
@@ -392,6 +397,22 @@ fn main() {
                 OutputType::RGB => OutputType::HEX,
                 OutputType::HEX => OutputType::HSL
             }
+        }
+        else if data == "y" {
+            let b64 = general_purpose::STANDARD.encode(match output_type {
+                OutputType::HSL => format!("hsl({})", curr_color.tohsl()),
+                OutputType::HEX => format!("#{}", curr_color.tohex()),
+                OutputType::RGB => format!("rgb({})", curr_color.torgb()),
+            });
+            print!("\x1b]52;c;{}\x07", b64);
+        }
+        else if data == "Y" {
+            let b64 = general_purpose::STANDARD.encode(match output_type {
+                OutputType::HSL => format!("{}", curr_color.tohsl()),
+                OutputType::HEX => format!("{}", curr_color.tohex()),
+                OutputType::RGB => format!("{}", curr_color.torgb()),
+            });
+            print!("\x1b]52;c;{}\x07", b64);
         }
     }
     termios::tcsetattr(0, termios::TCSANOW, &tios_initial).unwrap();
