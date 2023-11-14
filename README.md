@@ -2,7 +2,7 @@
 
 Tpick is a tui color picker because I was not satisfied with the available color pickers.
 
-None of them has a way to select with HSL except for [this one](https://github.com/uga-rosa/ccc.nvim) but that's a neovim extension which is clunky.
+None of them have a way to select with HSL except for [this one](https://github.com/uga-rosa/ccc.nvim) but that's a neovim extension which is clunky.
 
 # Usage
 
