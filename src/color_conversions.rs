@@ -84,11 +84,7 @@ pub fn hex62rgb(hex: &str) -> (u8, u8, u8) {
     return (r as u8, g as u8, b as u8);
 }
 
-pub fn ansi2562rgb(ansi: u8) -> (u8, u8, u8) {
-    //TODO: low_rgb are aliases for 30m-37m and 90m-97m
-    //query the terminal for low_rgb OUTSIDE of this function, this function should take low_rgb as
-    //an argument
-    let low_rgb = ["#000000", "#800000", "#008000", "#808000", "#000080", "#800080", "#008080", "#c0c0c0", "#808080", "#ff0000", "#00ff00", "#ffff00", "#0000ff", "#ff00ff", "#00ffff", "#ffffff"];
+pub fn ansi2562rgb(ansi: u8, low_rgb: &Vec<String>) -> (u8, u8, u8) {
     if ansi < 16 {
         return hex62rgb(&low_rgb[ansi as usize][1..]);
     }

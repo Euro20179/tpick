@@ -369,6 +369,34 @@ impl OutputType {
     }
 }
 
+fn read_ansi_color(reader: &mut std::io::Stdin, clr_num: u8) -> String {
+    println!("\x1b]4;{};?\x07", clr_num);
+    let mut clr_buf = String::new();
+    let mut b = [0;1];
+    loop {
+        reader.read_exact(&mut b).unwrap();
+        if b[0] == 7 {
+            break;
+        }
+        clr_buf += &String::from(b[0] as char);
+    }
+    //parses out garbage, gives us rr/gg/bb
+    let data = &clr_buf.as_str().split(";").nth(2).unwrap().split(":").nth(1).unwrap();
+    let mut hexes = data.split("/");
+    let r = &hexes.next().unwrap()[0..2];
+    let g = &hexes.next().unwrap()[0..2];
+    let b = &hexes.next().unwrap()[0..2];
+    return format!("#{}{}{}", r, g, b);
+}
+
+fn get_ansi_30_and_90(reader: &mut std::io::Stdin) -> Vec<String> {
+    let mut data = Vec::with_capacity(16);
+    for i in 0..16 {
+        data.push(read_ansi_color(reader, i));
+    }
+    return data;
+}
+
 fn read_clipboard(reader: &mut std::io::Stdin) -> String {
     println!("\x1b]52;c;?\x07");
 
@@ -432,6 +460,8 @@ fn main() {
 
     cls();
 
+    let low_rgb = get_ansi_30_and_90(&mut reader);
+
     loop {
         let (h, s, l) = program_state.curr_color.hsl();
 
@@ -465,7 +495,7 @@ fn main() {
                     },
                     SelectionType::ANSI256 => {
                         program_state.selected_item = (255.0 * (i as f32 / 10.0)) as u8;
-                        let (r, g, b) = ansi2562rgb(program_state.selected_item);
+                        let (r, g, b) = ansi2562rgb(program_state.selected_item, &low_rgb);
                         program_state.curr_color.modify_rgb((r as f32, g as f32, b as f32));
                     }
                 }
@@ -491,7 +521,7 @@ fn main() {
                 },
                 SelectionType::ANSI256 => {
                     program_state.selected_item = 255;
-                    let (r, g, b) = ansi2562rgb(program_state.selected_item);
+                    let (r, g, b) = ansi2562rgb(program_state.selected_item, &low_rgb);
                     program_state.curr_color.modify_rgb((r as f32, g as f32, b as f32));
                 }
             }
@@ -530,7 +560,7 @@ fn main() {
                         else {
                             program_state.selected_item += 1;
                         }
-                        let (r, g, b) = ansi2562rgb(program_state.selected_item);
+                        let (r, g, b) = ansi2562rgb(program_state.selected_item, &low_rgb);
                         program_state.curr_color.modify_rgb((r as f32, g as f32, b as f32));
                     }
                 }
