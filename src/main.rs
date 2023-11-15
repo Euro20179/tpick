@@ -440,7 +440,7 @@ fn main() {
         query_winsize(0, &mut wsz);
     }
 
-    //this variable keeps track of the step for the angle increase for the H rendering
+    //this variable keeps track of the step for the step increase for the HSL/RGB rendering
     let step = (360.0 / wsz.ws_col as f32).ceil();
 
     let square_count = (361.0 / step).ceil() as u32;
