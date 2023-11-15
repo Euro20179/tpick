@@ -160,6 +160,37 @@ impl ColorRepresentation {
         };
     }
 
+    fn tofmt(&self, fmt: &str) -> String {
+        let mut result = String::new();
+        //TODO:
+        //the plan here is to copy each character from fmt to result and format any special
+        //characters as needed
+        let mut is_fmt_char = false;
+        for i in 0..fmt.len(){
+            let ch = &fmt[i..i + 1];
+            if ch == "%" {
+                is_fmt_char = true;
+                continue;
+            }
+            if is_fmt_char {
+                if ch == "R" {
+                    result += &self.r.to_string();
+                }
+                else if ch == "G" {
+                    result += &self.g.to_string();
+                }
+                else if ch == "B" {
+                    result += &self.g.to_string();
+                }
+            }
+            else {
+                result += ch;
+            }
+            is_fmt_char = false;
+        }
+        return result;
+    }
+
     fn tohsl(&self, enable_alpha: bool) -> String {
         let (h, s, l) = self.hsl();
         if enable_alpha {
