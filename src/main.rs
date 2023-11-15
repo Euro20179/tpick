@@ -199,8 +199,18 @@ unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize) {
 }
 
 fn render_ansi256(selected_item: u8){
-    for clr_nr in 0..256 {
-        print!("\x1b[38;5;{}m█", clr_nr);
+    for low_nr in 0..16 {
+        print!("\x1b[38;5;{}m█", low_nr);
+    }
+    println!();
+    for i in 0..6{
+        for clr_nr in ((16 + i)..=232).step_by(6){
+            print!("\x1b[38;5;{}m█", clr_nr);
+        }
+        println!();
+    }
+    for grey_nr in 233..256 {
+        print!("\x1b[38;5;{}m█", grey_nr);
     }
     println!();
     println!("\x1b[0m");
