@@ -343,19 +343,12 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
         SelectionType::HSL => hsl_renderer,
         SelectionType::RGB => rgb_renderer
     }, square_count, step, program_state.selected_item, program_state.enable_alpha);
-    println!(
-        "\x1b[38;2;{}m████████\x1b[0m",
-        program_state.curr_color.toansi()
-    );
-    println!(
-        "\x1b[38;2;{}m████████\x1b[0m",
-        program_state.curr_color.toansi()
-    );
-    println!(
-        "\x1b[38;2;{}m████████\x1b[0m",
-        program_state.curr_color.toansi()
-    );
-    print!("\x1b[2K");
+    for i in 0..3 {
+        println!(
+            "\x1b[38;2;{}m████████\x1b[0m",
+            program_state.curr_color.toansi()
+        );
+    }
     program_state
         .output_type
         .render_output(&program_state.curr_color, program_state.enable_alpha);
@@ -386,7 +379,7 @@ enum OutputType {
 impl OutputType {
     fn render_output(&self, curr_color: &ColorRepresentation, enable_alpha: bool) {
         println!(
-            "{}",
+            "\x1b[2K{}",
             curr_color.get_formatted_output_clr(self, enable_alpha)
         )
     }
