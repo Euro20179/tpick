@@ -109,11 +109,6 @@ impl ColorRepresentation {
         return rgb2hsl(self.r, self.g, self.b);
     }
 
-    fn hsla(&self) -> (f32, f32, f32, u8) {
-        let data = rgb2hsl(self.r as f32, self.g as f32, self.b as f32);
-        return (data.0, data.1, data.2, self.a);
-    }
-
     fn modify_a(&mut self, mut new_value: i32) {
         new_value = clamp!(0, new_value, 255);
         self.a = new_value as u8;

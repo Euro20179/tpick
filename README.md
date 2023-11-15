@@ -69,8 +69,10 @@ Currently there are no cli options.
 # Goals
 
 - [x] Swap between different selections
-    - [x] HSL selection
-    - [x] RGB selection
+    - [x] HSL
+    - [x] RGB
+    - [ ] CYMK
+    - [ ] ANSI 256 color selection pannel
 - [x] Swap between different outputs
   - [ ] Let user pick from some kind of menu instead of cycling (or both)
   - [ ] Option to display all outputs at once
