@@ -11,6 +11,7 @@ use termios::Termios;
 
 use color_conversions::*;
 
+#[derive(Clone, Copy)]
 struct ColorRepresentation {
     r: f32,
     g: f32,
@@ -352,45 +353,58 @@ fn render_alpha_display(alpha: u8, square_count: u32, step: f32) {
     );
 }
 
-fn render_display(
-    curr_color: &ColorRepresentation,
-    square_count: u32,
-    step: f32,
-    input_type: &SelectionType,
-    output_type: &OutputType,
-    enable_alpha: bool,
-) {
-    match input_type {
-        SelectionType::HSL(item) => render_sliders(
-            curr_color.hsl(),
-            curr_color.a,
+fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
+    match program_state.selection_type {
+        SelectionType::HSL => render_sliders(
+            program_state.curr_color.hsl(),
+            program_state.curr_color.a,
             [render_h, render_s, render_l],
             square_count,
             step,
-            *item,
-            enable_alpha,
+            program_state.selected_item,
+            program_state.enable_alpha,
         ),
-        SelectionType::RGB(item) => render_sliders(
-            curr_color.rgb(),
-            curr_color.a,
+        SelectionType::RGB => render_sliders(
+            program_state.curr_color.rgb(),
+            program_state.curr_color.a,
             [render_r, render_g, render_b],
             square_count,
             step,
-            *item,
-            enable_alpha,
+            program_state.selected_item,
+            program_state.enable_alpha,
         ),
     }
-    println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
-    println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
-    println!("\x1b[38;2;{}m████████\x1b[0m", curr_color.toansi());
+    println!(
+        "\x1b[38;2;{}m████████\x1b[0m",
+        program_state.curr_color.toansi()
+    );
+    println!(
+        "\x1b[38;2;{}m████████\x1b[0m",
+        program_state.curr_color.toansi()
+    );
+    println!(
+        "\x1b[38;2;{}m████████\x1b[0m",
+        program_state.curr_color.toansi()
+    );
     print!("\x1b[2K");
-    output_type.render_output(curr_color, enable_alpha);
+    program_state
+        .output_type
+        .render_output(&program_state.curr_color, program_state.enable_alpha);
 }
 
+struct ProgramState {
+    selection_type: SelectionType,
+    selected_item: u8,
+    enable_alpha: bool,
+    output_type: OutputType,
+    curr_color: ColorRepresentation,
+}
+
+//TODO: remove u8 requirement, keep track of that with ProgramState.selected_item
 #[derive(Copy, Clone)]
 enum SelectionType {
-    HSL(u8),
-    RGB(u8),
+    HSL,
+    RGB,
 }
 
 enum OutputType {
@@ -462,26 +476,20 @@ fn main() {
 
     let square_count = (361.0 / step).ceil() as u32;
 
-    let mut curr_color = ColorRepresentation::from_color("rgb(0, 255, 255)");
-
-    let mut input_type = SelectionType::HSL(0);
-    let mut output_type = OutputType::HSL;
-
-    let mut enable_alpha = false;
+    let mut program_state = ProgramState {
+        selected_item: 0,
+        selection_type: SelectionType::HSL,
+        output_type: OutputType::HSL,
+        enable_alpha: false,
+        curr_color: ColorRepresentation::from_color("rgb(0, 255, 255)"),
+    };
 
     cls();
 
     loop {
-        let (h, s, l) = curr_color.hsl();
+        let (h, s, l) = program_state.curr_color.hsl();
 
-        render_display(
-            &curr_color,
-            square_count,
-            step,
-            &input_type,
-            &output_type,
-            enable_alpha,
-        );
+        render_display(&program_state, square_count, step);
 
         let bytes_read = reader.read(&mut buf).unwrap();
 
@@ -496,19 +504,19 @@ fn main() {
         for i in 0..=9 {
             if data == i.to_string() {
                 let mult = i as f32 / 10.0;
-                match input_type {
-                    SelectionType::HSL(selected_item) => match selected_item % 4 {
-                        0 => curr_color.modify_hsl((359.0 * mult, s, l)),
-                        1 => curr_color.modify_hsl((h, mult, l)),
-                        2 => curr_color.modify_hsl((h, s, mult)),
-                        3 => curr_color.modify_a((255.0 * mult) as i32),
+                match program_state.selection_type {
+                    SelectionType::HSL => match program_state.selected_item % 4 {
+                        0 => program_state.curr_color.modify_hsl((359.0 * mult, s, l)),
+                        1 => program_state.curr_color.modify_hsl((h, mult, l)),
+                        2 => program_state.curr_color.modify_hsl((h, s, mult)),
+                        3 => program_state.curr_color.modify_a((255.0 * mult) as i32),
                         _ => todo!("this should never happen"),
                     },
-                    SelectionType::RGB(selected_item) => match selected_item % 4 {
-                        0 => curr_color.r = 255.0 * mult,
-                        1 => curr_color.g = 255.0 * mult,
-                        2 => curr_color.b = 255.0 * mult,
-                        3 => curr_color.modify_a((255.0 * mult) as i32),
+                    SelectionType::RGB => match program_state.selected_item % 4 {
+                        0 => program_state.curr_color.r = 255.0 * mult,
+                        1 => program_state.curr_color.g = 255.0 * mult,
+                        2 => program_state.curr_color.b = 255.0 * mult,
+                        3 => program_state.curr_color.modify_a((255.0 * mult) as i32),
                         _ => todo!("this should never happen"),
                     },
                 }
@@ -517,106 +525,80 @@ fn main() {
 
         if data == "$" {
             let mult = 1.0;
-            match input_type {
-                SelectionType::HSL(selected_item) => match selected_item % 4 {
-                    0 => curr_color.modify_hsl((359.0 * mult, s, l)),
-                    1 => curr_color.modify_hsl((h, mult, l)),
-                    2 => curr_color.modify_hsl((h, s, mult)),
-                    3 => curr_color.modify_a((255.0 * mult) as i32),
+            match program_state.selection_type {
+                SelectionType::HSL => match program_state.selected_item % 4 {
+                    0 => program_state.curr_color.modify_hsl((359.0 * mult, s, l)),
+                    1 => program_state.curr_color.modify_hsl((h, mult, l)),
+                    2 => program_state.curr_color.modify_hsl((h, s, mult)),
+                    3 => program_state.curr_color.modify_a((255.0 * mult) as i32),
                     _ => todo!("this should never happen"),
                 },
-                SelectionType::RGB(selected_item) => match selected_item % 4 {
-                    0 => curr_color.r = 255.0,
-                    1 => curr_color.g = 255.0,
-                    2 => curr_color.b = 255.0,
-                    3 => curr_color.a = 255,
+                SelectionType::RGB => match program_state.selected_item % 4 {
+                    0 => program_state.curr_color.r = 255.0,
+                    1 => program_state.curr_color.g = 255.0,
+                    2 => program_state.curr_color.b = 255.0,
+                    3 => program_state.curr_color.a = 255,
                     _ => todo!("this should never happen"),
                 },
             }
         }
 
         if data == "l" || data == "h" {
-            match input_type {
-                SelectionType::HSL(selected_item) => match selected_item % 4 {
+            match program_state.selection_type {
+                SelectionType::HSL => match program_state.selected_item % 4 {
                     0 => {
                         let mod_amount = 1.0 * amnt_mult;
-                        curr_color.modify_hsl((h + mod_amount, s, l))
+                        program_state.curr_color.modify_hsl((h + mod_amount, s, l))
                     }
                     1 => {
                         let mod_amount = 0.01 * amnt_mult;
-                        curr_color.modify_hsl((h, s + mod_amount, l))
+                        program_state.curr_color.modify_hsl((h, s + mod_amount, l))
                     }
                     2 => {
                         let mod_amount = 0.01 * amnt_mult;
-                        curr_color.modify_hsl((h, s, l + mod_amount))
+                        program_state.curr_color.modify_hsl((h, s, l + mod_amount))
                     }
                     3 => {
                         let mod_amount = 1.0 * amnt_mult;
-                        curr_color.modify_a((curr_color.a as f32 + mod_amount) as i32)
+                        program_state.curr_color.modify_a((program_state.curr_color.a as f32 + mod_amount) as i32)
                     }
                     _ => todo!("this should never happen"),
                 },
-                SelectionType::RGB(selected_item) => match selected_item % 4 {
-                    0 => curr_color.modify_rgb((
-                        curr_color.r + 1.0 * amnt_mult,
-                        curr_color.g,
-                        curr_color.b,
+                SelectionType::RGB => match program_state.selected_item % 4 {
+                    0 => program_state.curr_color.modify_rgb((
+                        program_state.curr_color.r + 1.0 * amnt_mult,
+                        program_state.curr_color.g,
+                        program_state.curr_color.b,
                     )),
-                    1 => curr_color.modify_rgb((
-                        curr_color.r,
-                        curr_color.g + 1.0 * amnt_mult,
-                        curr_color.b,
+                    1 => program_state.curr_color.modify_rgb((
+                        program_state.curr_color.r,
+                        program_state.curr_color.g + 1.0 * amnt_mult,
+                        program_state.curr_color.b,
                     )),
-                    2 => curr_color.modify_rgb((
-                        curr_color.r,
-                        curr_color.g,
-                        curr_color.b + 1.0 * amnt_mult,
+                    2 => program_state.curr_color.modify_rgb((
+                        program_state.curr_color.r,
+                        program_state.curr_color.g,
+                        program_state.curr_color.b + 1.0 * amnt_mult,
                     )),
-                    3 => curr_color.modify_a((curr_color.a as f32 + 1.0 * amnt_mult) as i32),
+                    3 => program_state.curr_color.modify_a((program_state.curr_color.a as f32 + 1.0 * amnt_mult) as i32),
                     _ => todo!("this should never happen"),
                 },
             }
         } else if data == "k" {
-            input_type = match input_type {
-                SelectionType::HSL(selected_item) => SelectionType::HSL(if selected_item == 0 {
-                    2 + enable_alpha as u8
-                } else {
-                    selected_item - 1
-                }),
-                SelectionType::RGB(selected_item) => SelectionType::RGB(if selected_item == 0 {
-                    2 + enable_alpha as u8
-                } else {
-                    selected_item - 1
-                }),
-            }
+            program_state.selected_item = if program_state.selected_item == 0 {
+                2 + program_state.enable_alpha as u8
+            } else { program_state.selected_item - 1 };
         } else if data == "j" {
-            input_type = match input_type {
-                SelectionType::HSL(selected_item) => SelectionType::HSL(if selected_item == 2 {
-                    if enable_alpha {
-                        3
-                    } else {
-                        0
-                    }
-                } else {
-                    selected_item + 1
-                }),
-                SelectionType::RGB(selected_item) => SelectionType::RGB(if selected_item == 2 {
-                    if enable_alpha {
-                        3
-                    } else {
-                        0
-                    }
-                } else {
-                    selected_item + 1
-                }),
-            }
+            program_state.selected_item = if program_state.selected_item == 2 {
+                if program_state.enable_alpha { 3 } else { 0 }
+            } else { program_state.selected_item + 1 }
         } else if data == "i" {
-            input_type = match input_type {
-                SelectionType::RGB(n) => SelectionType::HSL(n),
-                SelectionType::HSL(n) => SelectionType::RGB(n),
-            }
+            program_state.selection_type = match program_state.selection_type {
+                SelectionType::HSL => SelectionType::RGB,
+                SelectionType::RGB => SelectionType::HSL
+            };
         } else if data == "o" {
-            output_type = match output_type {
+            program_state.output_type = match program_state.output_type {
                 OutputType::HSL => OutputType::RGB,
                 OutputType::RGB => OutputType::HEX,
                 OutputType::HEX => OutputType::ANSI,
@@ -624,18 +606,18 @@ fn main() {
             }
         } else if data == "y" {
             let b64 = general_purpose::STANDARD
-                .encode(curr_color.get_formatted_output_clr(&output_type, enable_alpha));
+                .encode(program_state.curr_color.get_formatted_output_clr(&program_state.output_type, program_state.enable_alpha));
             print!("\x1b]52;c;{}\x07", b64);
         } else if data == "Y" {
             let b64 = general_purpose::STANDARD
-                .encode(curr_color.get_output_clr(&output_type, enable_alpha));
+                .encode(program_state.curr_color.get_output_clr(&program_state.output_type, program_state.enable_alpha));
             print!("\x1b]52;c;{}\x07", b64);
         } else if data == "p" {
             let data = read_clipboard(&mut reader);
-            curr_color = ColorRepresentation::from_color(&data);
+            program_state.curr_color = ColorRepresentation::from_color(&data);
         } else if data == "a" {
             cls();
-            enable_alpha = !enable_alpha;
+            program_state.enable_alpha = !program_state.enable_alpha;
         }
     }
     termios::tcsetattr(0, termios::TCSANOW, &tios_initial).unwrap();
