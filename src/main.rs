@@ -99,7 +99,7 @@ impl ColorRepresentation {
         self.modify_a((self.a + rgba[3] as u8) as i32);
     }
 
-    fn add_hsla(&mut self, hsla: [f32; 4]) {
+    fn add_hsla(&mut self, mut hsla: [f32; 4]) {
         let (h, s, l) = self.hsl();
         self.modify_hsl((h + hsla[0], s + hsla[1], l + hsla[2]));
         self.modify_a((self.a + hsla[3] as u8) as i32);
@@ -565,11 +565,22 @@ fn main() {
         }
 
         if data == "l" || data == "h" {
-            let mut toadd = [0.0; 4];
-            toadd[(program_state.selected_item % 4) as usize] = 1.0 * amnt_mult;
             match program_state.selection_type {
-                SelectionType::HSL => program_state.curr_color.add_hsla(toadd),
-                SelectionType::RGB => program_state.curr_color.add_rgba(toadd),
+                SelectionType::HSL => {
+                    let mut toadd = [0.0; 4];
+                    if program_state.selected_item == 0 || program_state.selected_item == 3 {
+                        toadd[0] = 1.0 * amnt_mult;
+                    }
+                    else {
+                        toadd[program_state.selected_item as usize] = 0.01 * amnt_mult;
+                    }
+                    program_state.curr_color.add_hsla(toadd);
+                },
+                SelectionType::RGB => {
+                    let mut toadd = [0.0; 4];
+                    toadd[(program_state.selected_item % 4) as usize] = 1.0 * amnt_mult;
+                    program_state.curr_color.add_rgba(toadd);
+                }
             }
         } else if data == "k" {
             program_state.selected_item = if program_state.selected_item == 0 {
