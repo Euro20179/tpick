@@ -257,16 +257,14 @@ fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rg
     render_carrot_on_current_line(([curr_color.r, curr_color.g, curr_color.b][modifier_idx] / 255.0 * 360.0 / step).floor() as usize + 1);
 }
 
-fn render_r(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
-    render_rgb(curr_color, square_count, step, 0);
-}
-
-fn render_g(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
-    render_rgb(curr_color, square_count, step, 1);
-}
-
-fn render_b(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
-    render_rgb(curr_color, square_count, step, 2);
+fn rgb_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f32){
+    for i in 0..=2 {
+        print!("\x1b[{};0H", i * 2 + 1);
+        if selected_item == i {
+            print!("\x1b[32m");
+        }
+        render_rgb(curr_color, square_count, step, i as usize);
+    }
 }
 
 fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hsl_idx: usize){
@@ -287,16 +285,14 @@ fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hs
     render_carrot_on_current_line(([h, s, l][modifier_idx] / modifier_multiplier * 360.0 / step).floor() as usize + 1);
 }
 
-fn render_h(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
-    render_hsl(curr_color, square_count, step, 0);
-}
-
-fn render_s(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
-    render_hsl(curr_color, square_count, step, 1);
-}
-
-fn render_l(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
-    render_hsl(curr_color, square_count, step, 2);
+fn hsl_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f32){
+    for i in 0..=2 {
+        print!("\x1b[{};0H", i * 2 + 1);
+        if selected_item == i {
+            print!("\x1b[32m");
+        }
+        render_hsl(curr_color, square_count, step, i as usize);
+    }
 }
 
 fn render_a(square_count: u32) {
@@ -316,19 +312,14 @@ fn render_carrot_on_current_line(col: usize) {
 fn render_sliders(
     curr_color: &ColorRepresentation,
     alpha: u8,
-    colors: [fn(&ColorRepresentation, u32, f32); 3],
+    renderer: fn(&ColorRepresentation, u8, u32, f32),
     square_count: u32,
     step: f32,
     selected_item: u8,
     enable_alpha: bool,
 ) {
-    for i in 0..=2 {
-        print!("\x1b[{};0H", i * 2 + 1);
-        if selected_item == i {
-            print!("\x1b[32m");
-        }
-        colors[i as usize](curr_color, square_count, step);
-    }
+
+    renderer(curr_color, selected_item, square_count, step);
 
     if enable_alpha {
         print!("\x1b[7;0H");
@@ -349,8 +340,8 @@ fn render_alpha_display(alpha: u8, square_count: u32, step: f32) {
 
 fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
     render_sliders(&program_state.curr_color, program_state.curr_color.a, match program_state.selection_type {
-        SelectionType::HSL => [render_h, render_s, render_l],
-        SelectionType::RGB => [render_r, render_g, render_b]
+        SelectionType::HSL => hsl_renderer,
+        SelectionType::RGB => rgb_renderer
     }, square_count, step, program_state.selected_item, program_state.enable_alpha);
     println!(
         "\x1b[38;2;{}m████████\x1b[0m",
