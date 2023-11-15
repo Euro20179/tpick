@@ -2,7 +2,7 @@
 mod math;
 mod color_conversions;
 
-use std::io::Read;
+use std::io::{Read, Write};
 use std::str::Split;
 
 use base64::engine::general_purpose;
@@ -133,12 +133,14 @@ impl ColorRepresentation {
             OutputType::HSL => self.tohsl(enable_alpha),
             OutputType::ANSI => self.toansi(false),
             OutputType::RGB => self.torgb(enable_alpha),
-            OutputType::HEX =>  self.tohex(enable_alpha),
+            OutputType::HEX => self.tohex(enable_alpha),
+            OutputType::CUSTOM(fmt) => self.tofmt(fmt),
         };
     }
 
     fn get_formatted_output_clr(&self, output_type: &OutputType, enable_alpha: bool) -> String {
         return match output_type {
+            OutputType::CUSTOM(fmt) => self.tofmt(fmt),
             OutputType::HSL => {
                 if enable_alpha {
                     format!("hsla({})", self.tohsl(enable_alpha))
@@ -167,7 +169,7 @@ impl ColorRepresentation {
         //characters as needed
         let mut is_fmt_char = false;
         let (h, s, l) = self.hsl();
-        for i in 0..fmt.len(){
+        for i in 0..fmt.len() {
             let ch = &fmt[i..i + 1];
             if ch == "%" {
                 is_fmt_char = true;
@@ -176,24 +178,18 @@ impl ColorRepresentation {
             if is_fmt_char {
                 if ch == "R" {
                     result += &(self.r as u8).to_string();
-                }
-                else if ch == "G" {
+                } else if ch == "G" {
                     result += &(self.g as u8).to_string();
-                }
-                else if ch == "B" {
+                } else if ch == "B" {
                     result += &(self.g as u8).to_string();
-                }
-                else if ch == "H"{
+                } else if ch == "H" {
                     result += &h.to_string();
-                }
-                else if ch == "S" {
+                } else if ch == "S" {
                     result += &s.to_string();
-                }
-                else if ch == "L" {
+                } else if ch == "L" {
                     result += &l.to_string();
                 }
-            }
-            else {
+            } else {
                 result += ch;
             }
             is_fmt_char = false;
@@ -211,14 +207,20 @@ impl ColorRepresentation {
 
     fn torgb(&self, enable_alpha: bool) -> String {
         if enable_alpha {
-            return format!("{}, {}, {}, {}", self.r as u8, self.g as u8, self.b as u8, self.a);
+            return format!(
+                "{}, {}, {}, {}",
+                self.r as u8, self.g as u8, self.b as u8, self.a
+            );
         }
         return format!("{}, {}, {}", self.r as u8, self.g as u8, self.b as u8);
     }
 
     fn tohex(&self, enable_alpha: bool) -> String {
         if enable_alpha {
-            return format!("{:02x}{:02x}{:02x}{:02x}", self.r as u8, self.g as u8, self.b as u8, self.a);
+            return format!(
+                "{:02x}{:02x}{:02x}{:02x}",
+                self.r as u8, self.g as u8, self.b as u8, self.a
+            );
         }
         return format!(
             "{:02x}{:02x}{:02x}",
@@ -239,13 +241,13 @@ unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize) {
     libc::ioctl(fd, libc::TIOCGWINSZ, ws_struct);
 }
 
-fn render_ansi256(selected_item: u8){
+fn render_ansi256(selected_item: u8) {
     for low_nr in 0..16 {
         print!("\x1b[38;5;{}m{} ", low_nr, low_nr);
     }
     println!();
-    for i in 0..6{
-        for clr_nr in ((16 + i)..=232).step_by(6){
+    for i in 0..6 {
+        for clr_nr in ((16 + i)..=232).step_by(6) {
             print!("\x1b[38;5;{}m{} ", clr_nr, clr_nr);
         }
         println!();
@@ -258,12 +260,17 @@ fn render_ansi256(selected_item: u8){
     println!("\x1b[2K{}", selected_item);
 }
 
-fn ansi256_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f32){
+fn ansi256_renderer(
+    curr_color: &ColorRepresentation,
+    selected_item: u8,
+    square_count: u32,
+    step: f32,
+) {
     print!("\x1b[0H");
     render_ansi256(selected_item);
 }
 
-fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rgb_idx: usize){
+fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rgb_idx: usize) {
     //the way this renders will have all sliders colors update live based on the value of the other
     //channels in the color
 
@@ -277,19 +284,24 @@ fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rg
     let label = ['R', 'G', 'B'][rgb_idx];
     print!("{}", label);
     //create the starting color based on the list of colors
-    let mut color = ColorRepresentation::from_color(&format!("rgb({},{},{})", colors[0], colors[1], colors[2]));
+    let mut color =
+        ColorRepresentation::from_color(&format!("rgb({},{},{})", colors[0], colors[1], colors[2]));
     for i in 0..square_count {
         //print a square with the correct color
         print!("\x1b[38;2;{}m█", color.toansi(false));
         //modifies this slider's color to be i% of 255
-        colors[modifier_idx] = ( i as f32 / square_count as f32 ) * 255.0;
+        colors[modifier_idx] = (i as f32 / square_count as f32) * 255.0;
         color.modify_rgb((colors[0], colors[1], colors[2]));
     }
     println!("\x1b[0m");
-    render_carrot_on_current_line(([curr_color.r, curr_color.g, curr_color.b][modifier_idx] / 255.0 * 360.0 / step).floor() as usize + 1);
+    render_carrot_on_current_line(
+        ([curr_color.r, curr_color.g, curr_color.b][modifier_idx] / 255.0 * 360.0 / step).floor()
+            as usize
+            + 1,
+    );
 }
 
-fn rgb_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f32){
+fn rgb_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f32) {
     for i in 0..=2 {
         print!("\x1b[{};0H", i * 2 + 1);
         if selected_item == i {
@@ -299,7 +311,7 @@ fn rgb_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_coun
     }
 }
 
-fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hsl_idx: usize){
+fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hsl_idx: usize) {
     //works similarly to render_rgb
     let (h, s, l) = curr_color.hsl();
     let mut colors = [h, s, l];
@@ -308,17 +320,20 @@ fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hs
     let label = ['H', 'S', 'L'][hsl_idx];
     let modifier_multiplier = [360.0, 1.0, 1.0][hsl_idx];
     print!("{}", label);
-    let mut color = ColorRepresentation::from_color(&format!("hsl({},{},{})", colors[0], colors[1], colors[2]));
+    let mut color =
+        ColorRepresentation::from_color(&format!("hsl({},{},{})", colors[0], colors[1], colors[2]));
     for i in 0..square_count {
         print!("\x1b[38;2;{}m█", color.toansi(false));
-        colors[modifier_idx] = ( i as f32 / square_count as f32 ) * modifier_multiplier;
+        colors[modifier_idx] = (i as f32 / square_count as f32) * modifier_multiplier;
         color.modify_hsl((colors[0], colors[1], colors[2]));
     }
     println!("\x1b[0m");
-    render_carrot_on_current_line(([h, s, l][modifier_idx] / modifier_multiplier * 360.0 / step).floor() as usize + 1);
+    render_carrot_on_current_line(
+        ([h, s, l][modifier_idx] / modifier_multiplier * 360.0 / step).floor() as usize + 1,
+    );
 }
 
-fn hsl_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f32){
+fn hsl_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f32) {
     for i in 0..=2 {
         print!("\x1b[{};0H", i * 2 + 1);
         if selected_item == i {
@@ -351,7 +366,6 @@ fn render_sliders(
     selected_item: u8,
     enable_alpha: bool,
 ) {
-
     renderer(curr_color, selected_item, square_count, step);
 
     if enable_alpha {
@@ -372,11 +386,19 @@ fn render_alpha_display(alpha: u8, square_count: u32, step: f32) {
 }
 
 fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
-    render_sliders(&program_state.curr_color, program_state.curr_color.a, match program_state.selection_type {
-        SelectionType::HSL => hsl_renderer,
-        SelectionType::RGB => rgb_renderer,
-        SelectionType::ANSI256 => ansi256_renderer,
-    }, square_count, step, program_state.selected_item, program_state.enable_alpha);
+    render_sliders(
+        &program_state.curr_color,
+        program_state.curr_color.a,
+        match program_state.selection_type {
+            SelectionType::HSL => hsl_renderer,
+            SelectionType::RGB => rgb_renderer,
+            SelectionType::ANSI256 => ansi256_renderer,
+        },
+        square_count,
+        step,
+        program_state.selected_item,
+        program_state.enable_alpha,
+    );
     for _ in 0..3 {
         println!(
             "\x1b[38;2;{}m████████\x1b[0m",
@@ -401,7 +423,7 @@ struct ProgramState {
 enum SelectionType {
     HSL,
     RGB,
-    ANSI256
+    ANSI256,
 }
 
 enum OutputType {
@@ -409,6 +431,7 @@ enum OutputType {
     RGB,
     HEX,
     ANSI,
+    CUSTOM(String),
 }
 
 impl OutputType {
@@ -423,7 +446,7 @@ impl OutputType {
 fn read_ansi_color(reader: &mut std::io::Stdin, clr_num: u8) -> String {
     println!("\x1b]4;{};?\x07", clr_num);
     let mut clr_buf = String::new();
-    let mut b = [0;1];
+    let mut b = [0; 1];
     loop {
         reader.read_exact(&mut b).unwrap();
         if b[0] == 7 {
@@ -432,7 +455,14 @@ fn read_ansi_color(reader: &mut std::io::Stdin, clr_num: u8) -> String {
         clr_buf += &String::from(b[0] as char);
     }
     //parses out garbage, gives us rr/gg/bb
-    let data = &clr_buf.as_str().split(";").nth(2).unwrap().split(":").nth(1).unwrap();
+    let data = &clr_buf
+        .as_str()
+        .split(";")
+        .nth(2)
+        .unwrap()
+        .split(":")
+        .nth(1)
+        .unwrap();
     let mut hexes = data.split("/");
     let r = &hexes.next().unwrap()[0..2];
     let g = &hexes.next().unwrap()[0..2];
@@ -477,6 +507,31 @@ fn setup_term() -> (termios::Termios, termios::Termios) {
     termios::tcsetattr(0, termios::TCSANOW, &tios).unwrap();
 
     return (tios_initial, tios);
+}
+
+fn input(prompt: &str, reader: &mut std::io::Stdin, row: u32, col: u32) -> String {
+    print!("\x1b[s");
+    print!("\x1b[{};{}H{}", row, col, prompt);
+    let _ = std::io::stdout().flush();
+    let mut data = String::new();
+    let mut b = [0; 32];
+    loop {
+        let bytes_read = reader.read(&mut b).unwrap();
+        if b[0] == 10 {
+            break;
+        }
+        if b[0] == 127 {
+            let st = data.as_str();
+            data = String::from(&st[0..st.len() - 1])
+        } else {
+            data += &String::from_utf8(b[0..bytes_read].into()).unwrap();
+        }
+        print!("\x1b[2K\r{}{}", prompt, data);
+        let _ = std::io::stdout().flush();
+    }
+    print!("\x1b[2K");
+    print!("\x1b[u");
+    return data;
 }
 
 fn main() {
@@ -547,7 +602,9 @@ fn main() {
                     SelectionType::ANSI256 => {
                         program_state.selected_item = (255.0 * (i as f32 / 10.0)) as u8;
                         let (r, g, b) = ansi2562rgb(program_state.selected_item, &low_rgb);
-                        program_state.curr_color.modify_rgb((r as f32, g as f32, b as f32));
+                        program_state
+                            .curr_color
+                            .modify_rgb((r as f32, g as f32, b as f32));
                     }
                 }
             }
@@ -573,7 +630,9 @@ fn main() {
                 SelectionType::ANSI256 => {
                     program_state.selected_item = 255;
                     let (r, g, b) = ansi2562rgb(program_state.selected_item, &low_rgb);
-                    program_state.curr_color.modify_rgb((r as f32, g as f32, b as f32));
+                    program_state
+                        .curr_color
+                        .modify_rgb((r as f32, g as f32, b as f32));
                 }
             }
         }
@@ -586,33 +645,31 @@ fn main() {
                     let mut toadd = [0.0; 4];
                     if program_state.selected_item == 0 || program_state.selected_item == 3 {
                         toadd[0] = 1.0 * amnt_mult;
-                    }
-                    else {
+                    } else {
                         toadd[program_state.selected_item as usize] = 0.01 * amnt_mult;
                     }
                     program_state.curr_color.add_hsla(toadd);
-                },
+                }
                 SelectionType::RGB => {
                     let mut toadd = [0.0; 4];
                     toadd[(program_state.selected_item % 4) as usize] = 1.0 * amnt_mult;
                     program_state.curr_color.add_rgba(toadd);
-                },
+                }
                 SelectionType::ANSI256 => {
                     if program_state.selected_item == 255 && amnt_mult == 1.0 {
                         program_state.selected_item = 0;
-                    }
-                    else if program_state.selected_item == 0 && amnt_mult == -1.0 {
+                    } else if program_state.selected_item == 0 && amnt_mult == -1.0 {
                         program_state.selected_item = 255;
-                    }
-                    else{
+                    } else {
                         if amnt_mult < 0.0 {
                             program_state.selected_item -= 1;
-                        }
-                        else {
+                        } else {
                             program_state.selected_item += 1;
                         }
                         let (r, g, b) = ansi2562rgb(program_state.selected_item, &low_rgb);
-                        program_state.curr_color.modify_rgb((r as f32, g as f32, b as f32));
+                        program_state
+                            .curr_color
+                            .modify_rgb((r as f32, g as f32, b as f32));
                     }
                 }
             }
@@ -651,7 +708,11 @@ fn main() {
                 OutputType::RGB => OutputType::HEX,
                 OutputType::HEX => OutputType::ANSI,
                 OutputType::ANSI => OutputType::HSL,
+                OutputType::CUSTOM(..) => OutputType::HSL,
             }
+        } else if data == "O" {
+            let fmt = input("Format: ", &mut reader, 30, 0);
+            program_state.output_type = OutputType::CUSTOM(fmt);
         } else if data == "y" {
             let b64 = general_purpose::STANDARD.encode(
                 program_state.curr_color.get_formatted_output_clr(
