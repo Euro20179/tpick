@@ -166,6 +166,7 @@ impl ColorRepresentation {
         //the plan here is to copy each character from fmt to result and format any special
         //characters as needed
         let mut is_fmt_char = false;
+        let (h, s, l) = self.hsl();
         for i in 0..fmt.len(){
             let ch = &fmt[i..i + 1];
             if ch == "%" {
@@ -174,13 +175,22 @@ impl ColorRepresentation {
             }
             if is_fmt_char {
                 if ch == "R" {
-                    result += &self.r.to_string();
+                    result += &(self.r as u8).to_string();
                 }
                 else if ch == "G" {
-                    result += &self.g.to_string();
+                    result += &(self.g as u8).to_string();
                 }
                 else if ch == "B" {
-                    result += &self.g.to_string();
+                    result += &(self.g as u8).to_string();
+                }
+                else if ch == "H"{
+                    result += &h.to_string();
+                }
+                else if ch == "S" {
+                    result += &s.to_string();
+                }
+                else if ch == "L" {
+                    result += &l.to_string();
                 }
             }
             else {
