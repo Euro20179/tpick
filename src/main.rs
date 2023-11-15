@@ -241,40 +241,54 @@ unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize) {
     libc::ioctl(fd, libc::TIOCGWINSZ, ws_struct);
 }
 
-fn render_r(r: f32, g: f32, b: f32, square_count: u32, step: f32) {
-    print!("R");
-    let mut sat_color_rep = ColorRepresentation::from_color(&format!("rgb({}, {}, {})", 0.0, g, b));
-    for i in 0..square_count {
-        print!("\x1b[38;2;{}m█", sat_color_rep.toansi());
-        sat_color_rep.modify_rgb(((i as f32 / square_count as f32) * 255.0, g, b))
-    }
-    println!("\x1b[0m");
-    render_carrot_on_current_line((r / 255.0 * 360.0 / step).floor() as usize + 1);
+#[derive(Clone, Copy)]
+struct SliderRenderer{
+    pub label: char,
+    pub initial_color: ColorRepresentation,
+    pub color_from_percent: fn(&mut ColorRepresentation, f32),
+    pub carrot_position_calculator: fn(&ColorRepresentation, f32) -> usize,
 }
 
-fn render_g(r: f32, g: f32, b: f32, square_count: u32, step: f32) {
-    print!("G");
-    let mut sat_color_rep = ColorRepresentation::from_color(&format!("rgb({}, {}, {})", r, 0.0, b));
-    for i in 0..square_count {
-        print!("\x1b[38;2;{}m█", sat_color_rep.toansi());
-        sat_color_rep.modify_rgb((r, (i as f32 / square_count as f32) * 255.0, b))
+fn render_slider(curr_color: &ColorRepresentation, slider: &SliderRenderer, square_count: u32, step: f32){
+    print!("{}", slider.label);
+    let mut color = slider.initial_color;
+    for i  in 0..square_count {
+        print!("\x1b[38;2;{}m█", color.toansi());
+        (slider.color_from_percent)(&mut color, i as f32 / square_count as f32);
     }
     println!("\x1b[0m");
-    render_carrot_on_current_line((g / 255.0 * 360.0 / step).floor() as usize + 1);
+    render_carrot_on_current_line((slider.carrot_position_calculator)(&curr_color, step));
 }
 
-fn render_b(r: f32, g: f32, b: f32, square_count: u32, step: f32) {
-    print!("B");
-    let mut sat_color_rep = ColorRepresentation::from_color(&format!("rgb({}, {}, {})", r, g, 0.0));
-    for i in 0..square_count {
-        print!("\x1b[38;2;{}m█", sat_color_rep.toansi());
-        sat_color_rep.modify_rgb((r, g, (i as f32 / square_count as f32) * 255.0))
-    }
-    println!("\x1b[0m");
-    render_carrot_on_current_line((b / 255.0 * 360.0 / step).floor() as usize + 1);
+fn render_r(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
+    render_slider(curr_color, &SliderRenderer{
+        label: 'R',
+        initial_color: ColorRepresentation::from_color(&format!("rgb({}, {}, {})", 0.0, curr_color.g, curr_color.b)),
+        color_from_percent: |clr, percent| clr.modify_rgb((percent * 255.0, clr.g, clr.b)),
+        carrot_position_calculator: |clr, step|(clr.r / 255.0 * 360.0 / step).floor() as usize + 1,
+    }, square_count, step);
 }
 
-fn render_h(h: f32, s: f32, l: f32, square_count: u32, step: f32) {
+fn render_g(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
+    render_slider(curr_color, &SliderRenderer{
+        label: 'G',
+        initial_color: ColorRepresentation::from_color(&format!("rgb({}, {}, {})", curr_color.r, 0.0, curr_color.b)),
+        color_from_percent: |clr, percent| clr.modify_rgb((clr.r, percent * 255.0, clr.b)),
+        carrot_position_calculator: |clr, step|(clr.g / 255.0 * 360.0 / step).floor() as usize + 1,
+    }, square_count, step);
+}
+
+fn render_b(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
+    render_slider(curr_color, &SliderRenderer{
+        label: 'B',
+        initial_color: ColorRepresentation::from_color(&format!("rgb({}, {}, {})", curr_color.r, curr_color.g, 0.0)),
+        color_from_percent: |clr, percent| clr.modify_rgb((clr.r, clr.b, percent * 255.0)),
+        carrot_position_calculator: |clr, step|(clr.b / 255.0 * 360.0 / step).floor() as usize + 1,
+    }, square_count, step);
+}
+
+fn render_h(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
+    let (h, s, l) = curr_color.hsl();
     print!("H");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", 0.0, s, l));
     for i in 0..square_count {
@@ -286,7 +300,8 @@ fn render_h(h: f32, s: f32, l: f32, square_count: u32, step: f32) {
     render_carrot_on_current_line((h / step).floor() as usize + 1);
 }
 
-fn render_s(h: f32, s: f32, l: f32, square_count: u32, step: f32) {
+fn render_s(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
+    let (h, s, l) = curr_color.hsl();
     print!("S");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", h, 0.0, l));
     for i in 0..square_count {
@@ -299,7 +314,8 @@ fn render_s(h: f32, s: f32, l: f32, square_count: u32, step: f32) {
     render_carrot_on_current_line((s * 360.0 / step).floor() as usize + 1);
 }
 
-fn render_l(h: f32, s: f32, l: f32, square_count: u32, step: f32) {
+fn render_l(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
+    let (h, s, l) = curr_color.hsl();
     print!("L");
     let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", h, s, 0.0));
     for i in 0..square_count {
@@ -325,21 +341,20 @@ fn render_carrot_on_current_line(col: usize) {
 }
 
 fn render_sliders(
-    color: (f32, f32, f32),
+    curr_color: &ColorRepresentation,
     alpha: u8,
-    colors: [fn(f32, f32, f32, u32, f32); 3],
+    colors: [fn(&ColorRepresentation, u32, f32); 3],
     square_count: u32,
     step: f32,
     selected_item: u8,
     enable_alpha: bool,
 ) {
-    let (c1, c2, c3) = color;
     for i in 0..=2 {
         print!("\x1b[{};0H", i * 2 + 1);
         if selected_item == i {
             print!("\x1b[32m");
         }
-        colors[i as usize](c1, c2, c3, square_count, step);
+        colors[i as usize](curr_color, square_count, step);
     }
 
     if enable_alpha {
@@ -362,7 +377,7 @@ fn render_alpha_display(alpha: u8, square_count: u32, step: f32) {
 fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
     match program_state.selection_type {
         SelectionType::HSL => render_sliders(
-            program_state.curr_color.hsl(),
+            &program_state.curr_color,
             program_state.curr_color.a,
             [render_h, render_s, render_l],
             square_count,
@@ -371,7 +386,7 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
             program_state.enable_alpha,
         ),
         SelectionType::RGB => render_sliders(
-            program_state.curr_color.rgb(),
+            &program_state.curr_color,
             program_state.curr_color.a,
             [render_r, render_g, render_b],
             square_count,
