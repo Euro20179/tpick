@@ -75,3 +75,35 @@ pub fn rgb2hsl(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32) {
 
     return (h, s, l);
 }
+
+//REMOVE the # before giving to this function
+pub fn hex62rgb(hex: &str) -> (u8, u8, u8) {
+    let r = i64::from_str_radix(&hex[0..2], 16).unwrap();
+    let g = i64::from_str_radix(&hex[2..4], 16).unwrap();
+    let b = i64::from_str_radix(&hex[4..6], 16).unwrap();
+    return (r as u8, g as u8, b as u8);
+}
+
+pub fn ansi2562rgb(ansi: u8) -> (u8, u8, u8) {
+    //TODO: low_rgb are aliases for 30m-37m and 90m-97m
+    //query the terminal for low_rgb OUTSIDE of this function, this function should take low_rgb as
+    //an argument
+    let low_rgb = ["#000000", "#800000", "#008000", "#808000", "#000080", "#800080", "#008080", "#c0c0c0", "#808080", "#ff0000", "#00ff00", "#ffff00", "#0000ff", "#ff00ff", "#00ffff", "#ffffff"];
+    if ansi < 16 {
+        return hex62rgb(&low_rgb[ansi as usize][1..]);
+    }
+    if ansi > 231 {
+        let s = (ansi - 232) * 10 + 8;
+        return (s, s, s);
+    }
+
+    let n = ansi - 16;
+    let mut b = n % 6;
+    let mut g = (n - b) / 6 % 6;
+    let mut r = (n - b - g * 6) / 36 % 6;
+    b = if b != 0 {b * 40 + 50 } else { 0 };
+    r = if r != 0 {r * 40 + 50 } else { 0 };
+    g = if g != 0 {g * 40 + 50 } else { 0 };
+
+    return (r, g, b);
+}

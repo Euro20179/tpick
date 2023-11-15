@@ -198,6 +198,20 @@ unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize) {
     libc::ioctl(fd, libc::TIOCGWINSZ, ws_struct);
 }
 
+fn render_ansi256(selected_item: u8){
+    for clr_nr in 0..256 {
+        print!("\x1b[38;5;{}m█", clr_nr);
+    }
+    println!();
+    println!("\x1b[0m");
+    println!("\x1b[2K{}", selected_item);
+}
+
+fn ansi256_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f32){
+    print!("\x1b[0H");
+    render_ansi256(selected_item);
+}
+
 fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rgb_idx: usize){
     //the way this renders will have all sliders colors update live based on the value of the other
     //channels in the color
@@ -309,7 +323,8 @@ fn render_alpha_display(alpha: u8, square_count: u32, step: f32) {
 fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
     render_sliders(&program_state.curr_color, program_state.curr_color.a, match program_state.selection_type {
         SelectionType::HSL => hsl_renderer,
-        SelectionType::RGB => rgb_renderer
+        SelectionType::RGB => rgb_renderer,
+        SelectionType::ANSI256 => ansi256_renderer,
     }, square_count, step, program_state.selected_item, program_state.enable_alpha);
     for _ in 0..3 {
         println!(
@@ -335,6 +350,7 @@ struct ProgramState {
 enum SelectionType {
     HSL,
     RGB,
+    ANSI256
 }
 
 enum OutputType {
@@ -429,8 +445,6 @@ fn main() {
             break;
         }
 
-        let amnt_mult = if data == "l" { 1.0 } else { -1.0 };
-
         for i in 0..=9 {
             if data == i.to_string() {
                 let mult = i as f32 / 10.0;
@@ -449,6 +463,11 @@ fn main() {
                         3 => program_state.curr_color.modify_a((255.0 * mult) as i32),
                         _ => todo!("this should never happen"),
                     },
+                    SelectionType::ANSI256 => {
+                        program_state.selected_item = (255.0 * (i as f32 / 10.0)) as u8;
+                        let (r, g, b) = ansi2562rgb(program_state.selected_item);
+                        program_state.curr_color.modify_rgb((r as f32, g as f32, b as f32));
+                    }
                 }
             }
         }
@@ -470,10 +489,17 @@ fn main() {
                     3 => program_state.curr_color.a = 255,
                     _ => todo!("this should never happen"),
                 },
+                SelectionType::ANSI256 => {
+                    program_state.selected_item = 255;
+                    let (r, g, b) = ansi2562rgb(program_state.selected_item);
+                    program_state.curr_color.modify_rgb((r as f32, g as f32, b as f32));
+                }
             }
         }
 
         if data == "l" || data == "h" {
+            let amnt_mult = if data == "l" { 1.0 } else { -1.0 };
+
             match program_state.selection_type {
                 SelectionType::HSL => {
                     let mut toadd = [0.0; 4];
@@ -489,6 +515,24 @@ fn main() {
                     let mut toadd = [0.0; 4];
                     toadd[(program_state.selected_item % 4) as usize] = 1.0 * amnt_mult;
                     program_state.curr_color.add_rgba(toadd);
+                },
+                SelectionType::ANSI256 => {
+                    if program_state.selected_item == 255 && amnt_mult == 1.0 {
+                        program_state.selected_item = 0;
+                    }
+                    else if program_state.selected_item == 0 && amnt_mult == -1.0 {
+                        program_state.selected_item = 255;
+                    }
+                    else{
+                        if amnt_mult < 0.0 {
+                            program_state.selected_item -= 1;
+                        }
+                        else {
+                            program_state.selected_item += 1;
+                        }
+                        let (r, g, b) = ansi2562rgb(program_state.selected_item);
+                        program_state.curr_color.modify_rgb((r as f32, g as f32, b as f32));
+                    }
                 }
             }
         } else if data == "k" {
@@ -510,7 +554,15 @@ fn main() {
         } else if data == "i" {
             program_state.selection_type = match program_state.selection_type {
                 SelectionType::HSL => SelectionType::RGB,
-                SelectionType::RGB => SelectionType::HSL,
+                SelectionType::RGB => {
+                    cls();
+                    SelectionType::ANSI256
+                }
+                SelectionType::ANSI256 => {
+                    cls();
+                    program_state.selected_item = 0;
+                    SelectionType::HSL
+                }
             };
         } else if data == "o" {
             program_state.output_type = match program_state.output_type {

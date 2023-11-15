@@ -72,7 +72,7 @@ Currently there are no cli options.
     - [x] HSL
     - [x] RGB
     - [ ] CYMK
-    - [ ] ANSI 256 color selection pannel
+    - [x] ANSI 256 color selection pannel
 - [x] Swap between different outputs
   - [ ] Let user pick from some kind of menu instead of cycling (or both)
   - [ ] Option to display all outputs at once
