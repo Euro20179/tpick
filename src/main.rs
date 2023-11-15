@@ -135,28 +135,10 @@ impl ColorRepresentation {
 
     fn get_output_clr(&self, output_type: &OutputType, enable_alpha: bool) -> String {
         return match output_type {
-            OutputType::HSL => {
-                if enable_alpha {
-                    self.tohsla()
-                } else {
-                    self.tohsl()
-                }
-            }
-            OutputType::ANSI => self.toansi(),
-            OutputType::RGB => {
-                if enable_alpha {
-                    self.torgba()
-                } else {
-                    self.torgb()
-                }
-            }
-            OutputType::HEX => {
-                if enable_alpha {
-                    self.tohexa()
-                } else {
-                    self.tohex()
-                }
-            }
+            OutputType::HSL => self.tohsl(enable_alpha),
+            OutputType::ANSI => self.toansi(false),
+            OutputType::RGB => self.torgb(enable_alpha),
+            OutputType::HEX =>  self.tohex(enable_alpha),
         };
     }
 
@@ -164,67 +146,51 @@ impl ColorRepresentation {
         return match output_type {
             OutputType::HSL => {
                 if enable_alpha {
-                    format!("hsla({})", self.tohsla())
+                    format!("hsla({})", self.tohsl(enable_alpha))
                 } else {
-                    format!("hsl({})", self.tohsl())
+                    format!("hsl({})", self.tohsl(false))
                 }
             }
-            OutputType::HEX => {
-                if enable_alpha {
-                    format!("#{}", self.tohexa())
-                } else {
-                    format!("#{}", self.tohex())
-                }
-            }
+            OutputType::HEX => format!("#{}", self.tohex(enable_alpha)),
             OutputType::ANSI => {
-                format!("\\x1b[38;2;{}m", self.toansi())
+                format!("\\x1b[38;2;{}m", self.toansi(false))
             }
             OutputType::RGB => {
                 if enable_alpha {
-                    format!("rgba({})", self.torgba())
+                    format!("rgba({})", self.torgb(enable_alpha))
                 } else {
-                    format!("rgb({})", self.torgb())
+                    format!("rgb({})", self.torgb(false))
                 }
             }
         };
     }
 
-    fn tohsl(&self) -> String {
+    fn tohsl(&self, enable_alpha: bool) -> String {
         let (h, s, l) = self.hsl();
+        if enable_alpha {
+            return format!("{}, {}, {}, {}", h, (s * 100.0), (l * 100.0), self.a);
+        }
         return format!("{}, {}, {}", h, (s * 100.0), (l * 100.0));
     }
 
-    fn tohsla(&self) -> String {
-        let (h, s, l, a) = self.hsla();
-        return format!("{}, {}, {}, {}", h, (s * 100.0), (l * 100.0), a);
-    }
-
-    fn torgb(&self) -> String {
+    fn torgb(&self, enable_alpha: bool) -> String {
+        if enable_alpha {
+            return format!("{}, {}, {}, {}", self.r as u8, self.g as u8, self.b as u8, self.a);
+        }
         return format!("{}, {}, {}", self.r as u8, self.g as u8, self.b as u8);
     }
 
-    fn torgba(&self) -> String {
-        return format!(
-            "{}, {}, {}, {}",
-            self.r as u8, self.g as u8, self.b as u8, self.a
-        );
-    }
-
-    fn tohex(&self) -> String {
+    fn tohex(&self, enable_alpha: bool) -> String {
+        if enable_alpha {
+            return format!("{:02x}{:02x}{:02x}{:02x}", self.r as u8, self.g as u8, self.b as u8, self.a);
+        }
         return format!(
             "{:02x}{:02x}{:02x}",
             self.r as u8, self.g as u8, self.b as u8
         );
     }
 
-    fn tohexa(&self) -> String {
-        return format!(
-            "{:02x}{:02x}{:02x}{:02x}",
-            self.r as u8, self.g as u8, self.b as u8, self.a
-        );
-    }
-
-    fn toansi(&self) -> String {
+    fn toansi(&self, enable_alpha: bool) -> String {
         return format!("{};{};{}", self.r as u8, self.g as u8, self.b as u8);
     }
 }
@@ -254,7 +220,7 @@ fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rg
     let mut color = ColorRepresentation::from_color(&format!("rgb({},{},{})", colors[0], colors[1], colors[2]));
     for i in 0..square_count {
         //print a square with the correct color
-        print!("\x1b[38;2;{}m█", color.toansi());
+        print!("\x1b[38;2;{}m█", color.toansi(false));
         //modifies this slider's color to be i% of 255
         colors[modifier_idx] = ( i as f32 / square_count as f32 ) * 255.0;
         color.modify_rgb((colors[0], colors[1], colors[2]));
@@ -284,7 +250,7 @@ fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hs
     print!("{}", label);
     let mut color = ColorRepresentation::from_color(&format!("hsl({},{},{})", colors[0], colors[1], colors[2]));
     for i in 0..square_count {
-        print!("\x1b[38;2;{}m█", color.toansi());
+        print!("\x1b[38;2;{}m█", color.toansi(false));
         colors[modifier_idx] = ( i as f32 / square_count as f32 ) * modifier_multiplier;
         color.modify_hsl((colors[0], colors[1], colors[2]));
     }
@@ -306,7 +272,7 @@ fn render_a(square_count: u32) {
     print!("A");
     let mut sat_color_rep = ColorRepresentation::from_color("#000000");
     for i in 0..square_count {
-        print!("\x1b[38;2;{}m█", sat_color_rep.toansi());
+        print!("\x1b[38;2;{}m█", sat_color_rep.toansi(false));
         sat_color_rep.modify_hsl((0.0, 0.0, (i as f32 / square_count as f32)))
     }
     println!("\x1b[0m");
@@ -353,7 +319,7 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
     for _ in 0..3 {
         println!(
             "\x1b[38;2;{}m████████\x1b[0m",
-            program_state.curr_color.toansi()
+            program_state.curr_color.toansi(false)
         );
     }
     program_state
