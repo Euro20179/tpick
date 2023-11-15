@@ -348,26 +348,10 @@ fn render_alpha_display(alpha: u8, square_count: u32, step: f32) {
 }
 
 fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
-    match program_state.selection_type {
-        SelectionType::HSL => render_sliders(
-            &program_state.curr_color,
-            program_state.curr_color.a,
-            [render_h, render_s, render_l],
-            square_count,
-            step,
-            program_state.selected_item,
-            program_state.enable_alpha,
-        ),
-        SelectionType::RGB => render_sliders(
-            &program_state.curr_color,
-            program_state.curr_color.a,
-            [render_r, render_g, render_b],
-            square_count,
-            step,
-            program_state.selected_item,
-            program_state.enable_alpha,
-        ),
-    }
+    render_sliders(&program_state.curr_color, program_state.curr_color.a, match program_state.selection_type {
+        SelectionType::HSL => [render_h, render_s, render_l],
+        SelectionType::RGB => [render_r, render_g, render_b]
+    }, square_count, step, program_state.selected_item, program_state.enable_alpha);
     println!(
         "\x1b[38;2;{}m████████\x1b[0m",
         program_state.curr_color.toansi()
