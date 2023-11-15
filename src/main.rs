@@ -241,89 +241,62 @@ unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize) {
     libc::ioctl(fd, libc::TIOCGWINSZ, ws_struct);
 }
 
-#[derive(Clone, Copy)]
-struct SliderRenderer{
-    pub label: char,
-    pub initial_color: ColorRepresentation,
-    pub color_from_percent: fn(&mut ColorRepresentation, f32),
-    pub carrot_position_calculator: fn(&ColorRepresentation, f32) -> usize,
-}
-
-fn render_slider(curr_color: &ColorRepresentation, slider: &SliderRenderer, square_count: u32, step: f32){
-    print!("{}", slider.label);
-    let mut color = slider.initial_color;
-    for i  in 0..square_count {
+fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rgb_idx: usize){
+    let mut colors = [curr_color.r, curr_color.g, curr_color.b];
+    let modifier_idx = rgb_idx;
+    colors[modifier_idx] = 0.0;
+    let label = ['R', 'G', 'B'][rgb_idx];
+    print!("{}", label);
+    let mut color = ColorRepresentation::from_color(&format!("rgb({},{},{})", colors[0], colors[1], colors[2]));
+    for i in 0..square_count {
         print!("\x1b[38;2;{}m█", color.toansi());
-        (slider.color_from_percent)(&mut color, i as f32 / square_count as f32);
+        colors[modifier_idx] = ( i as f32 / square_count as f32 ) * 255.0;
+        color.modify_rgb((colors[0], colors[1], colors[2]));
     }
     println!("\x1b[0m");
-    render_carrot_on_current_line((slider.carrot_position_calculator)(&curr_color, step));
+    render_carrot_on_current_line(([curr_color.r, curr_color.g, curr_color.b][modifier_idx] / 255.0 * 360.0 / step).floor() as usize + 1);
 }
 
 fn render_r(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
-    render_slider(curr_color, &SliderRenderer{
-        label: 'R',
-        initial_color: ColorRepresentation::from_color(&format!("rgb({}, {}, {})", 0.0, curr_color.g, curr_color.b)),
-        color_from_percent: |clr, percent| clr.modify_rgb((percent * 255.0, clr.g, clr.b)),
-        carrot_position_calculator: |clr, step|(clr.r / 255.0 * 360.0 / step).floor() as usize + 1,
-    }, square_count, step);
+    render_rgb(curr_color, square_count, step, 0);
 }
 
 fn render_g(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
-    render_slider(curr_color, &SliderRenderer{
-        label: 'G',
-        initial_color: ColorRepresentation::from_color(&format!("rgb({}, {}, {})", curr_color.r, 0.0, curr_color.b)),
-        color_from_percent: |clr, percent| clr.modify_rgb((clr.r, percent * 255.0, clr.b)),
-        carrot_position_calculator: |clr, step|(clr.g / 255.0 * 360.0 / step).floor() as usize + 1,
-    }, square_count, step);
+    render_rgb(curr_color, square_count, step, 1);
 }
 
 fn render_b(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
-    render_slider(curr_color, &SliderRenderer{
-        label: 'B',
-        initial_color: ColorRepresentation::from_color(&format!("rgb({}, {}, {})", curr_color.r, curr_color.g, 0.0)),
-        color_from_percent: |clr, percent| clr.modify_rgb((clr.r, clr.b, percent * 255.0)),
-        carrot_position_calculator: |clr, step|(clr.b / 255.0 * 360.0 / step).floor() as usize + 1,
-    }, square_count, step);
+    render_rgb(curr_color, square_count, step, 2);
+}
+
+fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hsl_idx: usize){
+    let (h, s, l) = curr_color.hsl();
+    let mut colors = [h, s, l];
+    let modifier_idx = hsl_idx;
+    colors[modifier_idx] = 0.0;
+    let label = ['H', 'S', 'L'][hsl_idx];
+    let modifier_multiplier = [360.0, 1.0, 1.0][hsl_idx];
+    print!("{}", label);
+    let mut color = ColorRepresentation::from_color(&format!("hsl({},{},{})", colors[0], colors[1], colors[2]));
+    for i in 0..square_count {
+        print!("\x1b[38;2;{}m█", color.toansi());
+        colors[modifier_idx] = ( i as f32 / square_count as f32 ) * modifier_multiplier;
+        color.modify_hsl((colors[0], colors[1], colors[2]));
+    }
+    println!("\x1b[0m");
+    render_carrot_on_current_line(([h, s, l][modifier_idx] / modifier_multiplier * 360.0 / step).floor() as usize + 1);
 }
 
 fn render_h(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
-    let (h, s, l) = curr_color.hsl();
-    print!("H");
-    let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", 0.0, s, l));
-    for i in 0..square_count {
-        print!("\x1b[38;2;{}m█", sat_color_rep.toansi());
-        sat_color_rep.modify_hsl(((i as f32 / square_count as f32) * 360.0, s, l))
-    }
-    println!("\x1b[0m");
-    //the +1 accounts for the H on the very left
-    render_carrot_on_current_line((h / step).floor() as usize + 1);
+    render_hsl(curr_color, square_count, step, 0);
 }
 
 fn render_s(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
-    let (h, s, l) = curr_color.hsl();
-    print!("S");
-    let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", h, 0.0, l));
-    for i in 0..square_count {
-        print!("\x1b[38;2;{}m█", sat_color_rep.toansi());
-        sat_color_rep.modify_hsl((h, (i as f32 / square_count as f32), l))
-    }
-    println!("\x1b[0m");
-    //everything is measured as a percentage of 360 to keep the relative positioning of everything
-    //the same
-    render_carrot_on_current_line((s * 360.0 / step).floor() as usize + 1);
+    render_hsl(curr_color, square_count, step, 1);
 }
 
 fn render_l(curr_color: &ColorRepresentation, square_count: u32, step: f32) {
-    let (h, s, l) = curr_color.hsl();
-    print!("L");
-    let mut sat_color_rep = ColorRepresentation::from_color(&format!("hsl({}, {}, {})", h, s, 0.0));
-    for i in 0..square_count {
-        print!("\x1b[38;2;{}m█", sat_color_rep.toansi());
-        sat_color_rep.modify_hsl((h, s, (i as f32 / square_count as f32)))
-    }
-    println!("\x1b[0m");
-    render_carrot_on_current_line((l * 360.0 / step).floor() as usize + 1);
+    render_hsl(curr_color, square_count, step, 2);
 }
 
 fn render_a(square_count: u32) {
