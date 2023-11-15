@@ -94,6 +94,17 @@ impl ColorRepresentation {
         ColorRepresentation { r, g, b, a }
     }
 
+    fn add_rgba(&mut self, rgba: [f32; 4]) {
+        self.modify_rgb((self.r + rgba[0], self.g + rgba[1], self.b + rgba[2]));
+        self.modify_a((self.a + rgba[3] as u8) as i32);
+    }
+
+    fn add_hsla(&mut self, hsla: [f32; 4]) {
+        let (h, s, l) = self.hsl();
+        self.modify_hsl((h + hsla[0], s + hsla[1], l + hsla[2]));
+        self.modify_a((self.a + hsla[3] as u8) as i32);
+    }
+
     fn hsl(&self) -> (f32, f32, f32) {
         return rgb2hsl(self.r, self.g, self.b);
     }
@@ -108,12 +119,7 @@ impl ColorRepresentation {
     }
 
     fn modify_a(&mut self, mut new_value: i32) {
-        if new_value < 0 {
-            new_value = 0;
-        }
-        if new_value > 255 {
-            new_value = 255;
-        }
+        new_value = clamp!(0, new_value, 255);
         self.a = new_value as u8;
     }
 
@@ -544,58 +550,32 @@ fn main() {
         }
 
         if data == "l" || data == "h" {
+            let mut toadd = [0.0; 4];
+            toadd[(program_state.selected_item % 4) as usize] = 1.0 * amnt_mult;
             match program_state.selection_type {
-                SelectionType::HSL => match program_state.selected_item % 4 {
-                    0 => {
-                        let mod_amount = 1.0 * amnt_mult;
-                        program_state.curr_color.modify_hsl((h + mod_amount, s, l))
-                    }
-                    1 => {
-                        let mod_amount = 0.01 * amnt_mult;
-                        program_state.curr_color.modify_hsl((h, s + mod_amount, l))
-                    }
-                    2 => {
-                        let mod_amount = 0.01 * amnt_mult;
-                        program_state.curr_color.modify_hsl((h, s, l + mod_amount))
-                    }
-                    3 => {
-                        let mod_amount = 1.0 * amnt_mult;
-                        program_state.curr_color.modify_a((program_state.curr_color.a as f32 + mod_amount) as i32)
-                    }
-                    _ => todo!("this should never happen"),
-                },
-                SelectionType::RGB => match program_state.selected_item % 4 {
-                    0 => program_state.curr_color.modify_rgb((
-                        program_state.curr_color.r + 1.0 * amnt_mult,
-                        program_state.curr_color.g,
-                        program_state.curr_color.b,
-                    )),
-                    1 => program_state.curr_color.modify_rgb((
-                        program_state.curr_color.r,
-                        program_state.curr_color.g + 1.0 * amnt_mult,
-                        program_state.curr_color.b,
-                    )),
-                    2 => program_state.curr_color.modify_rgb((
-                        program_state.curr_color.r,
-                        program_state.curr_color.g,
-                        program_state.curr_color.b + 1.0 * amnt_mult,
-                    )),
-                    3 => program_state.curr_color.modify_a((program_state.curr_color.a as f32 + 1.0 * amnt_mult) as i32),
-                    _ => todo!("this should never happen"),
-                },
+                SelectionType::HSL => program_state.curr_color.add_hsla(toadd),
+                SelectionType::RGB => program_state.curr_color.add_rgba(toadd),
             }
         } else if data == "k" {
             program_state.selected_item = if program_state.selected_item == 0 {
                 2 + program_state.enable_alpha as u8
-            } else { program_state.selected_item - 1 };
+            } else {
+                program_state.selected_item - 1
+            };
         } else if data == "j" {
             program_state.selected_item = if program_state.selected_item == 2 {
-                if program_state.enable_alpha { 3 } else { 0 }
-            } else { program_state.selected_item + 1 }
+                if program_state.enable_alpha {
+                    3
+                } else {
+                    0
+                }
+            } else {
+                program_state.selected_item + 1
+            }
         } else if data == "i" {
             program_state.selection_type = match program_state.selection_type {
                 SelectionType::HSL => SelectionType::RGB,
-                SelectionType::RGB => SelectionType::HSL
+                SelectionType::RGB => SelectionType::HSL,
             };
         } else if data == "o" {
             program_state.output_type = match program_state.output_type {
@@ -605,12 +585,19 @@ fn main() {
                 OutputType::ANSI => OutputType::HSL,
             }
         } else if data == "y" {
-            let b64 = general_purpose::STANDARD
-                .encode(program_state.curr_color.get_formatted_output_clr(&program_state.output_type, program_state.enable_alpha));
+            let b64 = general_purpose::STANDARD.encode(
+                program_state.curr_color.get_formatted_output_clr(
+                    &program_state.output_type,
+                    program_state.enable_alpha,
+                ),
+            );
             print!("\x1b]52;c;{}\x07", b64);
         } else if data == "Y" {
-            let b64 = general_purpose::STANDARD
-                .encode(program_state.curr_color.get_output_clr(&program_state.output_type, program_state.enable_alpha));
+            let b64 = general_purpose::STANDARD.encode(
+                program_state
+                    .curr_color
+                    .get_output_clr(&program_state.output_type, program_state.enable_alpha),
+            );
             print!("\x1b]52;c;{}\x07", b64);
         } else if data == "p" {
             let data = read_clipboard(&mut reader);
