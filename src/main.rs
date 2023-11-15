@@ -99,7 +99,7 @@ impl ColorRepresentation {
         self.modify_a((self.a + rgba[3] as u8) as i32);
     }
 
-    fn add_hsla(&mut self, mut hsla: [f32; 4]) {
+    fn add_hsla(&mut self, hsla: [f32; 4]) {
         let (h, s, l) = self.hsl();
         self.modify_hsl((h + hsla[0], s + hsla[1], l + hsla[2]));
         self.modify_a((self.a + hsla[3] as u8) as i32);
@@ -107,10 +107,6 @@ impl ColorRepresentation {
 
     fn hsl(&self) -> (f32, f32, f32) {
         return rgb2hsl(self.r, self.g, self.b);
-    }
-
-    fn rgb(&self) -> (f32, f32, f32) {
-        return (self.r, self.g, self.b);
     }
 
     fn hsla(&self) -> (f32, f32, f32, u8) {
@@ -242,14 +238,24 @@ unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize) {
 }
 
 fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rgb_idx: usize){
+    //the way this renders will have all sliders colors update live based on the value of the other
+    //channels in the color
+
+    //keep track of the colors in a list
     let mut colors = [curr_color.r, curr_color.g, curr_color.b];
+    //this is the index of the color that will be modified
     let modifier_idx = rgb_idx;
+    //set it to 0 for the start of the slider
     colors[modifier_idx] = 0.0;
+    //find the label
     let label = ['R', 'G', 'B'][rgb_idx];
     print!("{}", label);
+    //create the starting color based on the list of colors
     let mut color = ColorRepresentation::from_color(&format!("rgb({},{},{})", colors[0], colors[1], colors[2]));
     for i in 0..square_count {
+        //print a square with the correct color
         print!("\x1b[38;2;{}m█", color.toansi());
+        //modifies this slider's color to be i% of 255
         colors[modifier_idx] = ( i as f32 / square_count as f32 ) * 255.0;
         color.modify_rgb((colors[0], colors[1], colors[2]));
     }
@@ -268,6 +274,7 @@ fn rgb_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_coun
 }
 
 fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hsl_idx: usize){
+    //works similarly to render_rgb
     let (h, s, l) = curr_color.hsl();
     let mut colors = [h, s, l];
     let modifier_idx = hsl_idx;
@@ -343,7 +350,7 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
         SelectionType::HSL => hsl_renderer,
         SelectionType::RGB => rgb_renderer
     }, square_count, step, program_state.selected_item, program_state.enable_alpha);
-    for i in 0..3 {
+    for _ in 0..3 {
         println!(
             "\x1b[38;2;{}m████████\x1b[0m",
             program_state.curr_color.toansi()
