@@ -121,7 +121,7 @@ pub fn init_keymaps(
     key_maps.insert("O".to_owned(), |program_state, _key| {
         let mut reader = std::io::stdin();
         let how_to_select = ui::input(
-            "Type m for menu f for a custom format, or a to display all outputs: ",
+            "Type m for menu\nf for a custom format\nor a to display all outputs: ",
             &mut reader,
             30,
             1,

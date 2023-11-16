@@ -7,13 +7,13 @@ mod keymaps;
 
 use color_representation::*;
 use keymaps::Action;
-use libc::fflush;
 
 use std::fmt::Display;
 use std::io::Read;
 use std::os::fd::AsRawFd;
 
 use clap::Parser;
+use clap::ColorChoice;
 use base64::engine::general_purpose;
 use base64::prelude::*;
 use termios::Termios;
@@ -418,7 +418,7 @@ fn get_input(reader: &mut std::io::Stdin) -> String {
 }
 
 #[derive(Parser, Debug)]
-#[command(long_about = "A color picker")]
+#[command(color = ColorChoice::Auto, long_about = "A color picker")]
 struct Args {
     color: Option<String>,
     #[arg(short, long)]
@@ -456,7 +456,7 @@ fn main() {
     }
 
     //this variable keeps track of the step for the step increase for the HSL/RGB rendering
-    let step = (360.0 / wsz.ws_col as f32).ceil();
+    let step = (360.0 / (wsz.ws_col - 1 /*the minus 1 is because we need to leave space for the label*/) as f32).ceil();
 
     let square_count = (361.0 / step).ceil() as u32;
 
