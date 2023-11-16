@@ -96,7 +96,7 @@ impl ColorRepresentation {
     pub fn add_hsla(&mut self, hsla: [f32; 4]) {
         let (h, s, l) = self.hsl();
         self.modify_hsl((h + hsla[0], s + hsla[1], l + hsla[2]));
-        self.modify_a((self.a + hsla[3] as u8) as i32);
+        self.modify_a(self.a as i32  + hsla[3] as i32);
     }
 
     pub fn hsl(&self) -> (f32, f32, f32) {

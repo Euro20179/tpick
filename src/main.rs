@@ -29,21 +29,24 @@ unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize) {
 }
 
 fn render_ansi256(selected_item: u8, _square_count: u32) {
+    eprint!(" ");
     for low_nr in 0..16 {
-        eprint!("\x1b[38;5;{}m{:3} ", low_nr, low_nr);
+        eprint!("\x1b[38;5;{}m{:<3} ", low_nr, low_nr);
     }
     eprintln!();
     for x in 0..6 {
+        eprint!(" ");
         for y in 0..6 {
             for z in 0..6 {
                 let clr = (x + 16) + (6 * y) + (36 * z);
-                eprint!("\x1b[38;5;{}m{:3} ", clr, clr);
+                eprint!("\x1b[38;5;{}m{:<3} ", clr, clr);
             }
         }
         eprintln!();
     }
+    eprint!(" ");
     for grey_nr in 232..256 {
-        eprint!("\x1b[38;5;{}m{:3} ", grey_nr, grey_nr);
+        eprint!("\x1b[38;5;{}m{:<3} ", grey_nr, grey_nr);
     }
     eprintln!();
     eprintln!("\x1b[0m");
@@ -189,15 +192,12 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
         program_state.selected_item,
         program_state.enable_alpha,
     );
-    for _ in 0..3 {
-        eprintln!(
-            "\x1b[38;2;{}m████████\x1b[0m",
-            program_state.curr_color.toansi(false)
-        );
-    }
-    eprint!("\x1b[J");
     eprint!(
-        "{}",
+        "\x1b[38;2;{}m████████\n████████\n████████\x1b[0m",
+        program_state.curr_color.toansi(false)
+    );
+    eprint!(
+        "\x1b[K {}",
         program_state
             .output_type
             .render_output(&program_state.curr_color, program_state.enable_alpha)
@@ -342,7 +342,7 @@ impl Display for OutputType {
 impl OutputType {
     fn render_output(&self, curr_color: &ColorRepresentation, enable_alpha: bool) -> String {
         format!(
-            "\x1b[2K{}",
+            "{}",
             curr_color.get_formatted_output_clr(self, enable_alpha)
         )
     }
