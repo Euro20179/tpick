@@ -2,8 +2,8 @@
 mod math;
 mod color_conversions;
 mod color_representation;
-mod ui;
 mod keymaps;
+mod ui;
 
 use color_representation::*;
 use keymaps::Action;
@@ -12,10 +12,10 @@ use std::fmt::Display;
 use std::io::Read;
 use std::os::fd::AsRawFd;
 
-use clap::Parser;
-use clap::ColorChoice;
 use base64::engine::general_purpose;
 use base64::prelude::*;
+use clap::ColorChoice;
+use clap::Parser;
 use termios::Termios;
 
 use color_conversions::*;
@@ -196,9 +196,12 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
         );
     }
     eprint!("\x1b[J");
-    eprint!("{}", program_state
-        .output_type
-        .render_output(&program_state.curr_color, program_state.enable_alpha));
+    eprint!(
+        "{}",
+        program_state
+            .output_type
+            .render_output(&program_state.curr_color, program_state.enable_alpha)
+    );
 }
 
 struct ProgramState {
@@ -330,7 +333,7 @@ impl Display for OutputType {
 }
 
 impl OutputType {
-    fn render_output(&self, curr_color: &ColorRepresentation, enable_alpha: bool) -> String{
+    fn render_output(&self, curr_color: &ColorRepresentation, enable_alpha: bool) -> String {
         format!(
             "\x1b[2K{}",
             curr_color.get_formatted_output_clr(self, enable_alpha)
@@ -371,6 +374,34 @@ fn get_ansi_30_and_90(reader: &mut std::io::Stdin) -> Vec<String> {
         data.push(read_ansi_color(reader, i));
     }
     return data;
+}
+
+///clr can be 10 or 11
+fn query_color(clr: u8, reader: &mut std::io::Stdin) -> String {
+    eprint!("\x1b]{};?\x07", clr);
+    let mut clr_buf = String::new();
+    let mut b = [0; 1];
+    loop {
+        reader.read_exact(&mut b).unwrap();
+        if b[0] == 7 {
+            break;
+        }
+        clr_buf += &String::from(b[0] as char);
+    }
+    //parses out garbage, gives us rr/gg/bb
+    let data = &clr_buf
+        .as_str()
+        .split(";")
+        .nth(1)
+        .unwrap()
+        .split(":")
+        .nth(1)
+        .unwrap();
+    let mut hexes = data.split("/");
+    let r = &hexes.next().unwrap()[0..2];
+    let g = &hexes.next().unwrap()[0..2];
+    let b = &hexes.next().unwrap()[0..2];
+    return format!("#{}{}{}", r, g, b);
 }
 
 fn paste_to_clipboard(data: &str) {
@@ -422,13 +453,25 @@ fn get_input(reader: &mut std::io::Stdin) -> String {
 struct Args {
     color: Option<String>,
     #[arg(short, long)]
-    print_on_exit: bool
+    print_on_exit: bool,
+    #[arg(short, long, help = "Enables use of --bg-clr and --fg-clr")]
+    use_custom_colors: bool,
+    #[arg(short, long)]
+    bg_clr: Option<String>,
+    #[arg(short, long)]
+    fg_clr: Option<String>,
 }
 
 fn main() {
     let args = Args::parse();
 
     let mut starting_clr = args.color.unwrap_or("#ff0000".to_string());
+
+    let requested_bg_color =
+        ColorRepresentation::from_color(&args.bg_clr.unwrap_or("#000000".to_string())).tohex(false);
+    let requested_fg_color =
+        ColorRepresentation::from_color(&args.fg_clr.unwrap_or("#ffffff".to_string())).tohex(false);
+    let use_custom_colors = args.use_custom_colors;
 
     let mut reader = std::io::stdin();
 
@@ -456,7 +499,9 @@ fn main() {
     }
 
     //this variable keeps track of the step for the step increase for the HSL/RGB rendering
-    let step = (360.0 / (wsz.ws_col - 1 /*the minus 1 is because we need to leave space for the label*/) as f32).ceil();
+    let step = (360.0
+        / (wsz.ws_col - 1/*the minus 1 is because we need to leave space for the label*/) as f32)
+        .ceil();
 
     let square_count = (361.0 / step).ceil() as u32;
 
@@ -468,29 +513,42 @@ fn main() {
         curr_color: ColorRepresentation::from_color(starting_clr.as_str()),
     };
 
-    cls();
-
     let key_mappings = keymaps::init_keymaps();
 
-    loop {
+    cls();
 
+    let bg_color = query_color(11, &mut reader);
+    let fg_color = query_color(10, &mut reader);
+    if use_custom_colors{
+        eprint!("\x1b]11;#{}\x07", requested_bg_color);
+        eprint!("\x1b]10;#{}\x07", requested_fg_color);
+    }
+
+    loop {
         render_display(&program_state, square_count, step);
         eprint!("\x1b[?25l");
 
         let data = get_input(&mut reader);
 
         if let Some(f) = key_mappings.get(&data) {
-            if let Some(action) = f(&mut program_state, &data){
+            if let Some(action) = f(&mut program_state, &data) {
                 match action {
-                    Action::Break => break
+                    Action::Break => break,
                 }
             }
         }
     }
     termios::tcsetattr(0, termios::TCSANOW, &tios_initial).unwrap();
     eprint!("\x1b[?25h");
+    eprint!("\x1b]11;{}\x07", bg_color);
+    eprint!("\x1b]10;{}\x07", fg_color);
     if args.print_on_exit {
         cls();
-        println!("{}", program_state.output_type.render_output(&program_state.curr_color, program_state.enable_alpha));
+        println!(
+            "{}",
+            program_state
+                .output_type
+                .render_output(&program_state.curr_color, program_state.enable_alpha)
+        );
     }
 }

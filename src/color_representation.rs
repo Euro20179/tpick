@@ -178,7 +178,7 @@ impl ColorRepresentation {
         };
     }
 
-    fn tofmt(&self, fmt: &str) -> String {
+    pub fn tofmt(&self, fmt: &str) -> String {
         let mut result = String::new();
         //TODO:
         //the plan here is to copy each character from fmt to result and format any special
@@ -213,7 +213,7 @@ impl ColorRepresentation {
         return result;
     }
 
-    fn tohsl(&self, enable_alpha: bool) -> String {
+    pub fn tohsl(&self, enable_alpha: bool) -> String {
         let (h, s, l) = self.hsl();
         if enable_alpha {
             return format!("{}, {}, {}, {}", h, s, l, self.a);
@@ -221,7 +221,7 @@ impl ColorRepresentation {
         return format!("{}, {}, {}", h, s, l);
     }
 
-    fn torgb(&self, enable_alpha: bool) -> String {
+    pub fn torgb(&self, enable_alpha: bool) -> String {
         if enable_alpha {
             return format!(
                 "{}, {}, {}, {}",
@@ -231,7 +231,7 @@ impl ColorRepresentation {
         return format!("{}, {}, {}", self.r as u8, self.g as u8, self.b as u8);
     }
 
-    fn tohex(&self, enable_alpha: bool) -> String {
+    pub fn tohex(&self, enable_alpha: bool) -> String {
         if enable_alpha {
             return format!(
                 "{:02x}{:02x}{:02x}{:02x}",
