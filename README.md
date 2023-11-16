@@ -83,6 +83,14 @@ Currently there are no cli options.
 - [ ] Convert any supported format to any other supported format via cli.
 - [x] Pressing a key to input a color
 - [ ] Cli options for setting default Input/Selection/Output formats
+- [ ] Event system
+    - would write to some kind of fifo/socket file that a shell script can read from
+    - events would include:
+        - color change
+        - selection type changed
+- [ ] Config file
+  - [ ] Custom output formats
+  - [ ] Keybindings
 
 ## Maybe goals
 
