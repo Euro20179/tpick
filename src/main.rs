@@ -247,15 +247,15 @@ fn render_ansi256(selected_item: u8, square_count: u32) {
     }
     println!();
     for x in 0..6 {
-        for i in 0..6 {
-            for j in 0..6 {
-                let n = 16 + i + (6 * j) + (36 * x);
-                print!("\x1b[38;5;{}m{:3} ", n, n)
+        for y in 0..6 {
+            for z in 0..6 {
+                let clr = (x + 16) + (6 * y) + (36 * z);
+                print!("\x1b[38;5;{}m{:3} ", clr, clr);
             }
         }
-            println!();
+        println!();
     }
-    for grey_nr in 233..256 {
+    for grey_nr in 232..256 {
         print!("\x1b[38;5;{}m{:3} ", grey_nr, grey_nr);
     }
     println!();
