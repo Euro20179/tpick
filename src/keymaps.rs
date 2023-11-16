@@ -120,16 +120,16 @@ pub fn init_keymaps(
 
     key_maps.insert("O".to_owned(), |program_state, _key| {
         let mut reader = std::io::stdin();
-        let how_to_select = ui::input(
-            "Type m for menu\nf for a custom format\nor a to display all outputs: ",
+        let how_to_select = ui::selection_menu(
+            vec!["select output", "custom format", "all outputs"],
             &mut reader,
             30,
             1,
         );
-        if how_to_select == "f" {
+        if how_to_select == "custom format" {
             let fmt = ui::input("Format: ", &mut reader, 30, 1);
             program_state.output_type = OutputType::CUSTOM(fmt);
-        } else if how_to_select == "a" {
+        } else if how_to_select == "all outputs" {
             program_state.output_type = OutputType::ALL
         } else {
             let o_type = ui::selection_menu(
