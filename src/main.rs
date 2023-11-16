@@ -429,6 +429,38 @@ enum SelectionType {
     ANSI256,
 }
 
+impl SelectionType {
+    fn label_from_selected_item(&self, selected_item: u8) -> char {
+        match self {
+            SelectionType::HSL => ['H', 'S', 'L', 'A'][selected_item as usize],
+            SelectionType::ANSI256 => 'e',
+            Self::RGB => ['R', 'G', 'B', 'A'][selected_item as usize],
+        }
+    }
+
+    fn modify_color_based_on_selected_item(&self, curr_color: &mut ColorRepresentation, selected_item: u8, mut new_value: f32){
+        match self {
+            SelectionType::HSL => {
+                let (h, s, l) = curr_color.hsl();
+                if selected_item == 1 || selected_item == 2 {
+                    new_value /= 100.0;
+                }
+                let mut modifiables = [h, s, l, curr_color.a as f32];
+                modifiables[selected_item as usize] = new_value;
+                curr_color.add_hsla([modifiables[0] - h, modifiables[1] - s, modifiables[2] - l, modifiables[3] - curr_color.a as f32]);
+
+            }
+            SelectionType::RGB => {
+                let (r, g, b) = (curr_color.r, curr_color.g, curr_color.b);
+                let mut modifiables = [r, g, b, curr_color.a as f32];
+                modifiables[selected_item as usize] = new_value;
+                curr_color.add_rgba([modifiables[0] - r, modifiables[1] - g, modifiables[2] - b, modifiables[3] - curr_color.a as f32]);
+            }
+            _ => todo!()
+        }
+    }
+}
+
 enum OutputType {
     HSL,
     RGB,
@@ -514,7 +546,7 @@ fn setup_term() -> (termios::Termios, termios::Termios) {
 
 fn input(prompt: &str, reader: &mut std::io::Stdin, row: u32, col: u32) -> String {
     print!("\x1b[s");
-    print!("\x1b[{};{}H{}", row, col, prompt);
+    print!("\x1b[{};{}H\x1b[2K{}", row, col, prompt);
     let _ = std::io::stdout().flush();
     let mut data = String::new();
     let mut b = [0; 32];
@@ -705,6 +737,25 @@ fn main() {
                     SelectionType::HSL
                 }
             };
+        } else if data == "I" {
+            let n = input(
+                &format!(
+                    "Type {}: ",
+                    program_state
+                        .selection_type
+                        .label_from_selected_item(program_state.selected_item)
+                ),
+                &mut reader,
+                30,
+                0,
+            );
+            let number = n.parse();
+            if let Ok(n) = number{
+                program_state.selection_type.modify_color_based_on_selected_item(&mut program_state.curr_color, program_state.selected_item, n);
+            }
+            else {
+                print!("\x1b[s\x1b[30;0H\x1b[31m{}\x1b[0m\x1b[u", "Invalid number");
+            }
         } else if data == "o" {
             program_state.output_type = match program_state.output_type {
                 OutputType::HSL => OutputType::RGB,
