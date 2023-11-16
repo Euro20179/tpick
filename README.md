@@ -82,7 +82,8 @@ Currently there are no cli options.
   - [x] Option to display all outputs at once
   - [x] Custom output formats
   - [ ] Show multiple different custom output formats
-- [ ] Specify starting value with cli option
+- [x] Specify starting value with cli option
+    - [x] Read starting value from stdin
 - [x] Copy output
 - [ ] Convert any supported format to any other supported format via cli.
 - [x] Pressing a key to input a color

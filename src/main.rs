@@ -10,6 +10,7 @@ use keymaps::Action;
 
 use std::fmt::Display;
 use std::io::Read;
+use std::os::fd::AsRawFd;
 
 use base64::engine::general_purpose;
 use base64::prelude::*;
@@ -416,9 +417,25 @@ fn get_input(reader: &mut std::io::Stdin) -> String {
 }
 
 fn main() {
-    let (tios_initial, _tios) = setup_term();
+    let mut args = std::env::args();
+
+    let _prog_name = args.next().unwrap();
+
+    let mut starting_clr = args.next().unwrap_or("#ff0000".to_owned());
 
     let mut reader = std::io::stdin();
+
+    if starting_clr == "-".to_string() {
+        starting_clr = String::new();
+        let _ = reader.read_line(&mut starting_clr);
+        starting_clr = starting_clr.trim().to_string();
+    }
+
+    let tty = std::fs::File::open("/dev/tty").unwrap();
+    let tty_fd = tty.as_raw_fd();
+    unsafe { libc::dup2(tty_fd, 0) };
+
+    let (tios_initial, _tios) = setup_term();
 
     let mut wsz = libc::winsize {
         ws_row: 0,
@@ -441,7 +458,7 @@ fn main() {
         selection_type: SelectionType::HSL,
         output_type: OutputType::HSL,
         enable_alpha: false,
-        curr_color: ColorRepresentation::from_color("rgb(0, 255, 255)"),
+        curr_color: ColorRepresentation::from_color(starting_clr.as_str()),
     };
 
     cls();
