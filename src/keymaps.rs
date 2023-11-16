@@ -49,6 +49,21 @@ pub fn init_keymaps(
         });
     }
 
+    for key in ["L", "H"] {
+        key_maps.insert(key.to_owned(), |program_state, key| {
+            let amnt_mult = if key == "L" { 10.0 } else { -10.0 };
+            let increments = program_state.selection_type.increments();
+            let inc = increments[program_state.selected_item as usize % increments.len()];
+            let colors = program_state.selection_type.colors(&program_state);
+            let color_count = colors.len();
+            let sel_type = program_state.selection_type;
+            let new_value =
+                colors[program_state.selected_item as usize % color_count] + inc * amnt_mult;
+            sel_type.modify_color_based_on_selected_item(program_state, new_value);
+            None
+        });
+    }
+
     key_maps.insert("k".to_owned(), |program_state, _key| {
         program_state.selected_item = if program_state.selected_item == 0 {
             2 + program_state.enable_alpha as u8

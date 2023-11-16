@@ -19,7 +19,9 @@ Currently there are no cli options.
 | Control | action                                                   |
 | ------- | -------------------------------------------------------- |
 | l       | increase current value                                   |
+| L       | increase current value by 10                             |
 | h       | decrease current value                                   |
+| H       | decrease current value by 10                             |
 | 0-9     | set current value to 0%-90%                              |
 | $       | set current value to 100%                                |
 | o       | cycle output format                                      |
@@ -83,7 +85,7 @@ Currently there are no cli options.
   - [x] Custom output formats
   - [ ] Show multiple different custom output formats
 - [x] Specify starting value with cli option
-    - [x] Read starting value from stdin
+  - [x] Read starting value from stdin
 - [x] Copy output
 - [ ] Convert any supported format to any other supported format via cli.
 - [x] Pressing a key to input a color
