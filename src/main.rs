@@ -438,7 +438,12 @@ impl SelectionType {
         }
     }
 
-    fn modify_color_based_on_selected_item(&self, curr_color: &mut ColorRepresentation, selected_item: u8, mut new_value: f32){
+    fn modify_color_based_on_selected_item(
+        &self,
+        curr_color: &mut ColorRepresentation,
+        selected_item: u8,
+        mut new_value: f32,
+    ) {
         match self {
             SelectionType::HSL => {
                 let (h, s, l) = curr_color.hsl();
@@ -447,16 +452,25 @@ impl SelectionType {
                 }
                 let mut modifiables = [h, s, l, curr_color.a as f32];
                 modifiables[selected_item as usize] = new_value;
-                curr_color.add_hsla([modifiables[0] - h, modifiables[1] - s, modifiables[2] - l, modifiables[3] - curr_color.a as f32]);
-
+                curr_color.add_hsla([
+                    modifiables[0] - h,
+                    modifiables[1] - s,
+                    modifiables[2] - l,
+                    modifiables[3] - curr_color.a as f32,
+                ]);
             }
             SelectionType::RGB => {
                 let (r, g, b) = (curr_color.r, curr_color.g, curr_color.b);
                 let mut modifiables = [r, g, b, curr_color.a as f32];
                 modifiables[selected_item as usize] = new_value;
-                curr_color.add_rgba([modifiables[0] - r, modifiables[1] - g, modifiables[2] - b, modifiables[3] - curr_color.a as f32]);
+                curr_color.add_rgba([
+                    modifiables[0] - r,
+                    modifiables[1] - g,
+                    modifiables[2] - b,
+                    modifiables[3] - curr_color.a as f32,
+                ]);
             }
-            _ => todo!()
+            _ => todo!(),
         }
     }
 }
@@ -511,6 +525,11 @@ fn get_ansi_30_and_90(reader: &mut std::io::Stdin) -> Vec<String> {
         data.push(read_ansi_color(reader, i));
     }
     return data;
+}
+
+fn paste_to_clipboard(data: &str) {
+    let b64 = general_purpose::STANDARD.encode(data);
+    print!("\x1b]52;c;{}\x07", b64);
 }
 
 fn read_clipboard(reader: &mut std::io::Stdin) -> String {
@@ -750,10 +769,15 @@ fn main() {
                 0,
             );
             let number = n.parse();
-            if let Ok(n) = number{
-                program_state.selection_type.modify_color_based_on_selected_item(&mut program_state.curr_color, program_state.selected_item, n);
-            }
-            else {
+            if let Ok(n) = number {
+                program_state
+                    .selection_type
+                    .modify_color_based_on_selected_item(
+                        &mut program_state.curr_color,
+                        program_state.selected_item,
+                        n,
+                    );
+            } else {
                 print!("\x1b[s\x1b[30;0H\x1b[31m{}\x1b[0m\x1b[u", "Invalid number");
             }
         } else if data == "o" {
@@ -771,20 +795,18 @@ fn main() {
             let clr = input("New color: ", &mut reader, 30, 0);
             program_state.curr_color = ColorRepresentation::from_color(&clr);
         } else if data == "y" {
-            let b64 = general_purpose::STANDARD.encode(
-                program_state.curr_color.get_formatted_output_clr(
+            paste_to_clipboard(
+                &program_state.curr_color.get_formatted_output_clr(
                     &program_state.output_type,
                     program_state.enable_alpha,
                 ),
-            );
-            print!("\x1b]52;c;{}\x07", b64);
+            )
         } else if data == "Y" {
-            let b64 = general_purpose::STANDARD.encode(
-                program_state
+            paste_to_clipboard(
+                &program_state
                     .curr_color
                     .get_output_clr(&program_state.output_type, program_state.enable_alpha),
             );
-            print!("\x1b]52;c;{}\x07", b64);
         } else if data == "p" {
             let data = read_clipboard(&mut reader);
             program_state.curr_color = ColorRepresentation::from_color(&data);
