@@ -1,8 +1,8 @@
 #[macro_use]
 mod math;
 mod color_conversions;
-mod ui;
 mod color_representation;
+mod ui;
 
 use color_representation::*;
 
@@ -14,7 +14,6 @@ use base64::prelude::*;
 use termios::Termios;
 
 use color_conversions::*;
-
 
 fn cls() {
     print!("\x1b[2J\x1b[0H");
@@ -222,6 +221,14 @@ impl SelectionType {
         }
     }
 
+    fn max_values(&self) -> Vec<f32> {
+        match self {
+            SelectionType::HSL => vec![359.0, 1.0, 1.0, 255.0],
+            SelectionType::RGB => vec![255.0, 255.0, 255.0, 255.0],
+            SelectionType::ANSI256 => vec![255.0, 255.0],
+        }
+    }
+
     fn modify_color_based_on_selected_item(
         &self,
         curr_color: &mut ColorRepresentation,
@@ -254,7 +261,12 @@ impl SelectionType {
                     modifiables[3] - curr_color.a as f32,
                 ]);
             }
-            _ => todo!(),
+            Self::ANSI256 => {
+                let mut reader = std::io::stdin();
+                let low_rgb = get_ansi_30_and_90(&mut reader);
+                let (r, g, b) = ansi2562rgb(new_value as u8, &low_rgb);
+                curr_color.modify_rgb((r as f32, g as f32, b as f32));
+            }
         }
     }
 }
@@ -402,8 +414,6 @@ fn main() {
     let low_rgb = get_ansi_30_and_90(&mut reader);
 
     loop {
-        let (h, s, l) = program_state.curr_color.hsl();
-
         render_display(&program_state, square_count, step);
 
         let bytes_read = reader.read(&mut buf).unwrap();
@@ -417,57 +427,24 @@ fn main() {
         for i in 0..=9 {
             if data == i.to_string() {
                 let mult = i as f32 / 10.0;
-                match program_state.selection_type {
-                    SelectionType::HSL => match program_state.selected_item % 4 {
-                        0 => program_state.curr_color.modify_hsl((359.0 * mult, s, l)),
-                        1 => program_state.curr_color.modify_hsl((h, mult, l)),
-                        2 => program_state.curr_color.modify_hsl((h, s, mult)),
-                        3 => program_state.curr_color.modify_a((255.0 * mult) as i32),
-                        _ => todo!("this should never happen"),
-                    },
-                    SelectionType::RGB => match program_state.selected_item % 4 {
-                        0 => program_state.curr_color.r = 255.0 * mult,
-                        1 => program_state.curr_color.g = 255.0 * mult,
-                        2 => program_state.curr_color.b = 255.0 * mult,
-                        3 => program_state.curr_color.modify_a((255.0 * mult) as i32),
-                        _ => todo!("this should never happen"),
-                    },
-                    SelectionType::ANSI256 => {
-                        program_state.selected_item = (255.0 * (i as f32 / 10.0)) as u8;
-                        let (r, g, b) = ansi2562rgb(program_state.selected_item, &low_rgb);
-                        program_state
-                            .curr_color
-                            .modify_rgb((r as f32, g as f32, b as f32));
-                    }
+                let max_values = program_state.selection_type.max_values();
+                let max_value = max_values[program_state.selected_item as usize % max_values.len()];
+                program_state.selection_type.modify_color_based_on_selected_item(&mut program_state.curr_color, program_state.selected_item, max_value * mult);
+                if let SelectionType::ANSI256 = program_state.selection_type {
+                    program_state.selected_item = (max_value * mult) as u8;
                 }
             }
         }
 
         if data == "$" {
-            let mult = 1.0;
-            match program_state.selection_type {
-                SelectionType::HSL => match program_state.selected_item % 4 {
-                    0 => program_state.curr_color.modify_hsl((359.0 * mult, s, l)),
-                    1 => program_state.curr_color.modify_hsl((h, mult, l)),
-                    2 => program_state.curr_color.modify_hsl((h, s, mult)),
-                    3 => program_state.curr_color.modify_a((255.0 * mult) as i32),
-                    _ => todo!("this should never happen"),
-                },
-                SelectionType::RGB => match program_state.selected_item % 4 {
-                    0 => program_state.curr_color.r = 255.0,
-                    1 => program_state.curr_color.g = 255.0,
-                    2 => program_state.curr_color.b = 255.0,
-                    3 => program_state.curr_color.a = 255,
-                    _ => todo!("this should never happen"),
-                },
-                SelectionType::ANSI256 => {
-                    program_state.selected_item = 255;
-                    let (r, g, b) = ansi2562rgb(program_state.selected_item, &low_rgb);
-                    program_state
-                        .curr_color
-                        .modify_rgb((r as f32, g as f32, b as f32));
-                }
-            }
+            let max_values = program_state.selection_type.max_values();
+            program_state
+                .selection_type
+                .modify_color_based_on_selected_item(
+                    &mut program_state.curr_color,
+                    program_state.selected_item,
+                    max_values[program_state.selected_item as usize % max_values.len()],
+                );
         }
 
         if data == "l" || data == "h" {

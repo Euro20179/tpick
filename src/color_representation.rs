@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::str::Split;
 
 use crate::OutputType;
@@ -100,6 +101,10 @@ impl ColorRepresentation {
 
     pub fn hsl(&self) -> (f32, f32, f32) {
         return rgb2hsl(self.r, self.g, self.b);
+    }
+
+    pub fn rgb(&self) -> (f32, f32, f32) {
+        return (self.r, self.g, self.b);
     }
 
     pub fn modify_a(&mut self, mut new_value: i32) {
@@ -241,5 +246,11 @@ impl ColorRepresentation {
 
     pub fn toansi(&self, _enable_alpha: bool) -> String {
         return format!("{};{};{}", self.r as u8, self.g as u8, self.b as u8);
+    }
+}
+
+impl Display for ColorRepresentation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.tohex(true))
     }
 }
