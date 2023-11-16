@@ -1,8 +1,9 @@
 use std::{fmt::Display, io::{Write, Read}};
 
 pub fn input(prompt: &str, reader: &mut std::io::Stdin, row: u32, col: u32) -> String {
-    print!("\x1b[s");
-    print!("\x1b[{};{}H\x1b[2K{}", row, col, prompt);
+    eprint!("\x1b[s");
+    eprint!("\x1b[?25h");
+    eprint!("\x1b[{};{}H\x1b[2K{}", row, col, prompt);
     let _ = std::io::stdout().flush();
     let mut data = String::new();
     let mut b = [0; 32];
@@ -17,24 +18,25 @@ pub fn input(prompt: &str, reader: &mut std::io::Stdin, row: u32, col: u32) -> S
         } else {
             data += &String::from_utf8(b[0..bytes_read].into()).unwrap();
         }
-        print!("\x1b[2K\r{}{}", prompt, data);
+        eprint!("\x1b[2K\r{}{}", prompt, data);
         let _ = std::io::stdout().flush();
     }
-    print!("\x1b[2K");
-    print!("\x1b[u");
+    eprint!("\x1b[?25l");
+    eprint!("\x1b[2K");
+    eprint!("\x1b[u");
     return data;
 }
 
 pub fn selection_menu<T: Display + Clone>(items: Vec<T>, reader: &mut std::io::Stdin, row: u32, col: u32) -> T {
-    print!("\x1b[s");
+    eprint!("\x1b[s");
     let mut curr_selection = 0;
     loop {
-        print!("\x1b[{};{}H\x1b[J", row, col);
+        eprint!("\x1b[{};{}H\x1b[J", row, col);
         for (i, item) in items.iter().enumerate() {
             if i == curr_selection {
-                println!("\x1b[32m{}\x1b[0m {}", i, item);
+                eprintln!("\x1b[32m{}\x1b[0m {}", i, item);
             } else {
-                println!("{} {}", i, item);
+                eprintln!("{} {}", i, item);
             }
         }
         let mut b = [0 as u8; 1];
@@ -55,10 +57,10 @@ pub fn selection_menu<T: Display + Clone>(items: Vec<T>, reader: &mut std::io::S
         }
     }
     //clear the list thing
-    print!("\x1b[{};{}H\x1b[J", row, col);
+    eprint!("\x1b[{};{}H\x1b[J", row, col);
     for _i in 0..items.len() {
-        println!("\x1b[2K");
+        eprintln!("\x1b[2K");
     }
-    print!("\x1b[u");
+    eprint!("\x1b[u");
     return items[curr_selection].clone();
 }
