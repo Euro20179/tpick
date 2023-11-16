@@ -2,8 +2,11 @@
 mod math;
 mod color_conversions;
 
+use std::fmt::Display;
 use std::io::{Read, Write};
+use std::rc::Rc;
 use std::str::Split;
+use std::task::ready;
 
 use base64::engine::general_purpose;
 use base64::prelude::*;
@@ -475,12 +478,26 @@ impl SelectionType {
     }
 }
 
+#[derive(Clone)]
 enum OutputType {
     HSL,
     RGB,
     HEX,
     ANSI,
     CUSTOM(String),
+}
+
+impl Display for OutputType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use OutputType::*;
+        write!(f, "{}", match self {
+            HSL => "HSL",
+            RGB => "RGB",
+            HEX => "HEX",
+            ANSI => "ANSI",
+            CUSTOM(n) => n
+        })
+    }
 }
 
 impl OutputType {
@@ -586,6 +603,44 @@ fn input(prompt: &str, reader: &mut std::io::Stdin, row: u32, col: u32) -> Strin
     print!("\x1b[2K");
     print!("\x1b[u");
     return data;
+}
+
+fn selection_menu<T: Display + Clone>(items: Vec<T>, reader: &mut std::io::Stdin, row: u32, col: u32) -> T {
+    print!("\x1b[s");
+    let mut curr_selection = 0;
+    loop {
+        print!("\x1b[{};{}H\x1b[J", row, col);
+        for (i, item) in items.iter().enumerate() {
+            if i == curr_selection {
+                println!("\x1b[32m{}\x1b[0m {}", i, item);
+            } else {
+                println!("{} {}", i, item);
+            }
+        }
+        let mut b = [0 as u8; 1];
+        reader.read(&mut b).unwrap();
+        if b[0] == b'j' {
+            curr_selection += 1;
+            if curr_selection > items.len() - 1 {
+                curr_selection = 0;
+            }
+        } else if b[0] == b'k' {
+            if curr_selection == 0 {
+                curr_selection = items.len() - 1;
+            } else {
+                curr_selection -= 1;
+            }
+        } else if b[0] == 10 {
+            break;
+        }
+    }
+    //clear the list thing
+    print!("\x1b[{};{}H\x1b[J", row, col);
+    for _i in 0..items.len() {
+        println!("\x1b[2K");
+    }
+    print!("\x1b[u");
+    return items[curr_selection].clone();
 }
 
 fn main() {
@@ -766,7 +821,7 @@ fn main() {
                 ),
                 &mut reader,
                 30,
-                0,
+                1,
             );
             let number = n.parse();
             if let Ok(n) = number {
@@ -778,7 +833,7 @@ fn main() {
                         n,
                     );
             } else {
-                print!("\x1b[s\x1b[30;0H\x1b[31m{}\x1b[0m\x1b[u", "Invalid number");
+                print!("\x1b[s\x1b[30;1H\x1b[31m{}\x1b[0m\x1b[u", "Invalid number");
             }
         } else if data == "o" {
             program_state.output_type = match program_state.output_type {
@@ -789,10 +844,22 @@ fn main() {
                 OutputType::CUSTOM(..) => OutputType::HSL,
             }
         } else if data == "O" {
-            let fmt = input("Format: ", &mut reader, 30, 0);
-            program_state.output_type = OutputType::CUSTOM(fmt);
+            let how_to_select = input(
+                "Type m for menu or f for a custom format: ",
+                &mut reader,
+                30,
+                1,
+            );
+            if how_to_select == "f" {
+                let fmt = input("Format: ", &mut reader, 30, 1);
+                program_state.output_type = OutputType::CUSTOM(fmt);
+            }
+            else {
+                let o_type = selection_menu(vec![OutputType::HSL, OutputType::RGB, OutputType::HEX, OutputType::ANSI], &mut reader, 20, 1);
+                program_state.output_type = o_type
+            }
         } else if data == "n" {
-            let clr = input("New color: ", &mut reader, 30, 0);
+            let clr = input("New color: ", &mut reader, 30, 1);
             program_state.curr_color = ColorRepresentation::from_color(&clr);
         } else if data == "y" {
             paste_to_clipboard(
