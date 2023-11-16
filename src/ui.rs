@@ -41,6 +41,9 @@ pub fn selection_menu<T: Display + Clone>(items: Vec<T>, reader: &mut std::io::S
         }
         let mut b = [0 as u8; 1];
         reader.read(&mut b).unwrap();
+        if b[0] == 10 {
+            break;
+        }
         if b[0] - 48 < items.len() as u8 {
             curr_selection = (b[0] - 48) as usize;
             break;
@@ -56,10 +59,7 @@ pub fn selection_menu<T: Display + Clone>(items: Vec<T>, reader: &mut std::io::S
             } else {
                 curr_selection -= 1;
             }
-        } else if b[0] == 10 {
-            break;
-        }
-    }
+        }    }
     //clear the list thing
     eprint!("\x1b[{};{}H\x1b[J", row, col);
     for _i in 0..items.len() {
