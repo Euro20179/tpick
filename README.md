@@ -73,6 +73,7 @@ Currently there are no cli options.
     - [x] RGB
     - [ ] CYMK
     - [x] ANSI 256 color selection pannel
+- [x] Ability to input number for slider
 - [x] Swap between different outputs
   - [ ] Let user pick from some kind of menu instead of cycling (or both)
   - [ ] Option to display all outputs at once
@@ -80,7 +81,7 @@ Currently there are no cli options.
 - [ ] Specify starting value with cli option
 - [x] Copy output
 - [ ] Convert any supported format to any other supported format via cli.
-- [ ] Pressing a key to input a color
+- [x] Pressing a key to input a color
 - [ ] Cli options for setting default Input/Selection/Output formats
 
 ## Maybe goals

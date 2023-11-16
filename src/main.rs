@@ -767,6 +767,9 @@ fn main() {
         } else if data == "O" {
             let fmt = input("Format: ", &mut reader, 30, 0);
             program_state.output_type = OutputType::CUSTOM(fmt);
+        } else if data == "n" {
+            let clr = input("New color: ", &mut reader, 30, 0);
+            program_state.curr_color = ColorRepresentation::from_color(&clr);
         } else if data == "y" {
             let b64 = general_purpose::STANDARD.encode(
                 program_state.curr_color.get_formatted_output_clr(
