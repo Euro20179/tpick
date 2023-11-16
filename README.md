@@ -75,7 +75,7 @@ Currently there are no cli options.
     - [x] ANSI 256 color selection pannel
 - [x] Ability to input number for slider
 - [x] Swap between different outputs
-  - [ ] Let user pick from some kind of menu instead of cycling (or both)
+  - [x] Let user pick from some kind of menu instead of cycling (or both)
   - [ ] Option to display all outputs at once
   - [x] Custom output formats
 - [ ] Specify starting value with cli option

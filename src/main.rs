@@ -1,12 +1,11 @@
 #[macro_use]
 mod math;
 mod color_conversions;
+mod ui;
 
 use std::fmt::Display;
-use std::io::{Read, Write};
-use std::rc::Rc;
+use std::io::Read;
 use std::str::Split;
-use std::task::ready;
 
 use base64::engine::general_purpose;
 use base64::prelude::*;
@@ -231,7 +230,7 @@ impl ColorRepresentation {
         );
     }
 
-    fn toansi(&self, enable_alpha: bool) -> String {
+    fn toansi(&self, _enable_alpha: bool) -> String {
         return format!("{};{};{}", self.r as u8, self.g as u8, self.b as u8);
     }
 }
@@ -244,7 +243,7 @@ unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize) {
     libc::ioctl(fd, libc::TIOCGWINSZ, ws_struct);
 }
 
-fn render_ansi256(selected_item: u8, square_count: u32) {
+fn render_ansi256(selected_item: u8, _square_count: u32) {
     for low_nr in 0..16 {
         print!("\x1b[38;5;{}m{:3} ", low_nr, low_nr);
     }
@@ -267,10 +266,10 @@ fn render_ansi256(selected_item: u8, square_count: u32) {
 }
 
 fn ansi256_renderer(
-    curr_color: &ColorRepresentation,
+    _curr_color: &ColorRepresentation,
     selected_item: u8,
     square_count: u32,
-    step: f32,
+    _step: f32,
 ) {
     print!("\x1b[0H");
     render_ansi256(selected_item, square_count);
@@ -580,69 +579,6 @@ fn setup_term() -> (termios::Termios, termios::Termios) {
     return (tios_initial, tios);
 }
 
-fn input(prompt: &str, reader: &mut std::io::Stdin, row: u32, col: u32) -> String {
-    print!("\x1b[s");
-    print!("\x1b[{};{}H\x1b[2K{}", row, col, prompt);
-    let _ = std::io::stdout().flush();
-    let mut data = String::new();
-    let mut b = [0; 32];
-    loop {
-        let bytes_read = reader.read(&mut b).unwrap();
-        if b[0] == 10 {
-            break;
-        }
-        if b[0] == 127 {
-            let st = data.as_str();
-            data = String::from(&st[0..st.len() - 1])
-        } else {
-            data += &String::from_utf8(b[0..bytes_read].into()).unwrap();
-        }
-        print!("\x1b[2K\r{}{}", prompt, data);
-        let _ = std::io::stdout().flush();
-    }
-    print!("\x1b[2K");
-    print!("\x1b[u");
-    return data;
-}
-
-fn selection_menu<T: Display + Clone>(items: Vec<T>, reader: &mut std::io::Stdin, row: u32, col: u32) -> T {
-    print!("\x1b[s");
-    let mut curr_selection = 0;
-    loop {
-        print!("\x1b[{};{}H\x1b[J", row, col);
-        for (i, item) in items.iter().enumerate() {
-            if i == curr_selection {
-                println!("\x1b[32m{}\x1b[0m {}", i, item);
-            } else {
-                println!("{} {}", i, item);
-            }
-        }
-        let mut b = [0 as u8; 1];
-        reader.read(&mut b).unwrap();
-        if b[0] == b'j' {
-            curr_selection += 1;
-            if curr_selection > items.len() - 1 {
-                curr_selection = 0;
-            }
-        } else if b[0] == b'k' {
-            if curr_selection == 0 {
-                curr_selection = items.len() - 1;
-            } else {
-                curr_selection -= 1;
-            }
-        } else if b[0] == 10 {
-            break;
-        }
-    }
-    //clear the list thing
-    print!("\x1b[{};{}H\x1b[J", row, col);
-    for _i in 0..items.len() {
-        println!("\x1b[2K");
-    }
-    print!("\x1b[u");
-    return items[curr_selection].clone();
-}
-
 fn main() {
     let (tios_initial, _tios) = setup_term();
 
@@ -812,7 +748,7 @@ fn main() {
                 }
             };
         } else if data == "I" {
-            let n = input(
+            let n = ui::input(
                 &format!(
                     "Type {}: ",
                     program_state
@@ -844,22 +780,22 @@ fn main() {
                 OutputType::CUSTOM(..) => OutputType::HSL,
             }
         } else if data == "O" {
-            let how_to_select = input(
+            let how_to_select = ui::input(
                 "Type m for menu or f for a custom format: ",
                 &mut reader,
                 30,
                 1,
             );
             if how_to_select == "f" {
-                let fmt = input("Format: ", &mut reader, 30, 1);
+                let fmt = ui::input("Format: ", &mut reader, 30, 1);
                 program_state.output_type = OutputType::CUSTOM(fmt);
             }
             else {
-                let o_type = selection_menu(vec![OutputType::HSL, OutputType::RGB, OutputType::HEX, OutputType::ANSI], &mut reader, 20, 1);
+                let o_type = ui::selection_menu(vec![OutputType::HSL, OutputType::RGB, OutputType::HEX, OutputType::ANSI], &mut reader, 20, 1);
                 program_state.output_type = o_type
             }
         } else if data == "n" {
-            let clr = input("New color: ", &mut reader, 30, 1);
+            let clr = ui::input("New color: ", &mut reader, 30, 1);
             program_state.curr_color = ColorRepresentation::from_color(&clr);
         } else if data == "y" {
             paste_to_clipboard(
