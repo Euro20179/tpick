@@ -3,6 +3,7 @@ mod math;
 mod color_conversions;
 mod color_representation;
 mod ui;
+mod keymaps;
 
 use color_representation::*;
 
@@ -405,11 +406,18 @@ fn setup_term() -> (termios::Termios, termios::Termios) {
     return (tios_initial, tios);
 }
 
+fn get_input(reader: &mut std::io::Stdin) -> String {
+    let mut buf = [0; 32];
+
+    let bytes_read = reader.read(&mut buf).unwrap();
+
+    String::from_utf8(buf[0..bytes_read].to_vec()).unwrap()
+}
+
 fn main() {
     let (tios_initial, _tios) = setup_term();
 
     let mut reader = std::io::stdin();
-    let mut buf = [0; 32];
 
     let mut wsz = libc::winsize {
         ws_row: 0,
@@ -437,158 +445,19 @@ fn main() {
 
     cls();
 
-    let low_rgb = get_ansi_30_and_90(&mut reader);
+    let key_mappings = keymaps::init_keymaps();
 
     loop {
         render_display(&program_state, square_count, step);
 
-        let bytes_read = reader.read(&mut buf).unwrap();
-
-        let data = String::from_utf8(buf[0..bytes_read].to_vec()).unwrap();
+        let data = get_input(&mut reader);
 
         if data == "q" {
             break;
         }
 
-        for i in 0..=9 {
-            if data == i.to_string() {
-                let mult = i as f32 / 10.0;
-                let max_values = program_state.selection_type.max_values();
-                let max_value = max_values[program_state.selected_item as usize % max_values.len()];
-                let sel_type = program_state.selection_type;
-                sel_type.modify_color_based_on_selected_item(&mut program_state, max_value * mult);
-            }
-        }
-
-        if data == "$" {
-            let max_values = program_state.selection_type.max_values();
-            let sel_type = program_state.selection_type;
-            let new_value = max_values[program_state.selected_item as usize % max_values.len()];
-            sel_type.modify_color_based_on_selected_item(&mut program_state, new_value);
-        }
-
-        if data == "l" || data == "h" {
-            let amnt_mult = if data == "l" { 1.0 } else { -1.0 };
-
-            let increments = program_state.selection_type.increments();
-            let inc = increments[program_state.selected_item as usize % increments.len()];
-            let colors = program_state.selection_type.colors(&program_state);
-            let color_count = colors.len();
-            let sel_type = program_state.selection_type;
-            let new_value =
-                colors[program_state.selected_item as usize % color_count] + inc * amnt_mult;
-            sel_type.modify_color_based_on_selected_item(&mut program_state, new_value);
-
-        } else if data == "k" {
-            program_state.selected_item = if program_state.selected_item == 0 {
-                2 + program_state.enable_alpha as u8
-            } else {
-                program_state.selected_item - 1
-            };
-        } else if data == "j" {
-            program_state.selected_item = if program_state.selected_item == 2 {
-                if program_state.enable_alpha {
-                    3
-                } else {
-                    0
-                }
-            } else {
-                program_state.selected_item + 1
-            }
-        } else if data == "i" {
-            program_state.selection_type = match program_state.selection_type {
-                SelectionType::HSL => SelectionType::RGB,
-                SelectionType::RGB => {
-                    cls();
-                    SelectionType::ANSI256
-                }
-                SelectionType::ANSI256 => {
-                    cls();
-                    program_state.selected_item = 0;
-                    SelectionType::HSL
-                }
-            };
-        } else if data == "I" {
-            let n = ui::input(
-                &format!(
-                    "Type {}: ",
-                    program_state
-                        .selection_type
-                        .label_from_selected_item(program_state.selected_item)
-                ),
-                &mut reader,
-                30,
-                1,
-            );
-            let number = n.parse();
-            if let Ok(n) = number {
-                let sel_type = program_state.selection_type;
-                sel_type.modify_color_based_on_selected_item(&mut program_state, n);
-            } else {
-                print!("\x1b[s\x1b[30;1H\x1b[31m{}\x1b[0m\x1b[u", "Invalid number");
-            }
-        } else if data == "o" {
-            program_state.output_type = match program_state.output_type {
-                OutputType::HSL => OutputType::RGB,
-                OutputType::RGB => OutputType::HEX,
-                OutputType::HEX => OutputType::ANSI,
-                OutputType::ANSI => OutputType::HSL,
-                OutputType::CUSTOM(..) => OutputType::HSL,
-                OutputType::ALL => OutputType::HSL,
-            }
-        } else if data == "O" {
-            let how_to_select = ui::input(
-                "Type m for menu f for a custom format, or a to display all outputs: ",
-                &mut reader,
-                30,
-                1,
-            );
-            if how_to_select == "f" {
-                let fmt = ui::input("Format: ", &mut reader, 30, 1);
-                program_state.output_type = OutputType::CUSTOM(fmt);
-            } else if how_to_select == "a" {
-                program_state.output_type = OutputType::ALL
-            } else {
-                let o_type = ui::selection_menu(
-                    vec![
-                        OutputType::HSL,
-                        OutputType::RGB,
-                        OutputType::HEX,
-                        OutputType::ANSI,
-                    ],
-                    &mut reader,
-                    20,
-                    1,
-                );
-                program_state.output_type = o_type
-            }
-        } else if data == "n" {
-            let clr = ui::input("New color: ", &mut reader, 30, 1);
-            program_state.curr_color = ColorRepresentation::from_color(&clr);
-        } else if data == "y" {
-            paste_to_clipboard(
-                &program_state.curr_color.get_formatted_output_clr(
-                    &program_state.output_type,
-                    program_state.enable_alpha,
-                ),
-            )
-        } else if data == "Y" {
-            paste_to_clipboard(
-                &program_state
-                    .curr_color
-                    .get_output_clr(&program_state.output_type, program_state.enable_alpha),
-            );
-        } else if data == "p" {
-            let data = read_clipboard(&mut reader);
-            program_state.curr_color = ColorRepresentation::from_color(&data);
-        } else if data == "a" {
-            match program_state.selection_type {
-                SelectionType::ANSI256 => {}
-                _ => {
-                    cls();
-                    program_state.enable_alpha = !program_state.enable_alpha;
-                }
-            }
+        if let Some(f) = key_mappings.get(&data) {
+            f(&mut program_state, &data);
         }
     }
     termios::tcsetattr(0, termios::TCSANOW, &tios_initial).unwrap();
