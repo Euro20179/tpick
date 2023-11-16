@@ -341,17 +341,26 @@ impl OutputType {
     }
 }
 
-fn read_ansi_color(reader: &mut std::io::Stdin, clr_num: u8) -> String {
-    eprintln!("\x1b]4;{};?\x07", clr_num);
-    let mut clr_buf = String::new();
+fn read_osc_response(reader: &mut std::io::Stdin) -> String {
+    let mut result_str = String::new();
     let mut b = [0; 1];
     loop {
         reader.read_exact(&mut b).unwrap();
         if b[0] == 7 {
             break;
         }
-        clr_buf += &String::from(b[0] as char);
+        if b[0] == b'\\' && result_str.ends_with("\x1b"){
+            result_str = result_str.strip_suffix("\x1b").unwrap().to_string();
+            break;
+        }
+        result_str += &String::from(b[0] as char);
     }
+    return result_str;
+}
+
+fn read_ansi_color(reader: &mut std::io::Stdin, clr_num: u8) -> String {
+    eprintln!("\x1b]4;{};?\x07", clr_num);
+    let clr_buf = read_osc_response(reader);
     //parses out garbage, gives us rr/gg/bb
     let data = &clr_buf
         .as_str()
@@ -379,15 +388,7 @@ fn get_ansi_30_and_90(reader: &mut std::io::Stdin) -> Vec<String> {
 ///clr can be 10 or 11
 fn query_color(clr: u8, reader: &mut std::io::Stdin) -> String {
     eprint!("\x1b]{};?\x07", clr);
-    let mut clr_buf = String::new();
-    let mut b = [0; 1];
-    loop {
-        reader.read_exact(&mut b).unwrap();
-        if b[0] == 7 {
-            break;
-        }
-        clr_buf += &String::from(b[0] as char);
-    }
+    let clr_buf = read_osc_response(reader);
     //parses out garbage, gives us rr/gg/bb
     let data = &clr_buf
         .as_str()
@@ -412,15 +413,7 @@ fn paste_to_clipboard(data: &str) {
 fn read_clipboard(reader: &mut std::io::Stdin) -> String {
     eprintln!("\x1b]52;c;?\x07");
 
-    let mut clip_buf = String::new();
-    let mut b = [0; 1];
-    loop {
-        reader.read_exact(&mut b).unwrap();
-        if b[0] == 7 {
-            break;
-        }
-        clip_buf += &String::from(b[0] as char);
-    }
+    let clip_buf = read_osc_response(reader);
 
     let clip_data = clip_buf.split(";").nth(2).unwrap();
 
@@ -523,10 +516,10 @@ fn main() {
         eprint!("\x1b]11;#{}\x07", requested_bg_color);
         eprint!("\x1b]10;#{}\x07", requested_fg_color);
     }
+    eprint!("\x1b[?25l");
 
     loop {
         render_display(&program_state, square_count, step);
-        eprint!("\x1b[?25l");
 
         let data = get_input(&mut reader);
 
