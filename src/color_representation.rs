@@ -216,9 +216,9 @@ impl ColorRepresentation {
     pub fn tohsl(&self, enable_alpha: bool) -> String {
         let (h, s, l) = self.hsl();
         if enable_alpha {
-            return format!("{}, {}, {}, {}", h, s, l, self.a);
+            return format!("{:.2}, {:.2}, {:.2}, {:.2}", h, s, l, self.a);
         }
-        return format!("{}, {}, {}", h, s, l);
+        return format!("{:.2}, {:.2}, {:.2}", h, s, l);
     }
 
     pub fn torgb(&self, enable_alpha: bool) -> String {
