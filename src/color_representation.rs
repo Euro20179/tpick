@@ -108,21 +108,21 @@ impl ColorRepresentation {
     }
 
     pub fn modify_a(&mut self, mut new_value: i32) {
-        new_value = clamp!(0, new_value, 255);
+        new_value = clamp_with_bel!(0, new_value, 255);
         self.a = new_value as u8;
     }
 
     pub fn modify_rgb(&mut self, mut new_value: (f32, f32, f32)) {
-        new_value.0 = clamp!(0.0, new_value.0, 255.0);
-        new_value.1 = clamp!(0.0, new_value.1, 255.0);
-        new_value.2 = clamp!(0.0, new_value.2, 255.0);
+        new_value.0 = clamp_with_bel!(0.0, new_value.0, 255.0);
+        new_value.1 = clamp_with_bel!(0.0, new_value.1, 255.0);
+        new_value.2 = clamp_with_bel!(0.0, new_value.2, 255.0);
         (self.r, self.g, self.b) = new_value;
     }
 
     pub fn modify_hsl(&mut self, mut new_value: (f32, f32, f32)) {
-        new_value.0 = clamp!(0.0, new_value.0, 359.0);
-        new_value.1 = clamp!(0.0, new_value.1, 100.0);
-        new_value.2 = clamp!(0.0, new_value.2, 100.0);
+        new_value.0 = clamp_with_bel!(0.0, new_value.0, 359.0);
+        new_value.1 = clamp_with_bel!(0.0, new_value.1, 100.0);
+        new_value.2 = clamp_with_bel!(0.0, new_value.2, 100.0);
         (self.r, self.g, self.b) = hsl2rgb(new_value.0, new_value.1, new_value.2);
     }
 
