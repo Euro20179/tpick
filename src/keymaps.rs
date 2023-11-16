@@ -1,18 +1,26 @@
 use crate::cls;
 use crate::ui;
-use crate::{OutputType, SelectionType};
-use crate::{read_clipboard, paste_to_clipboard};
-use crate::ProgramState;
 use crate::ColorRepresentation;
+use crate::ProgramState;
+use crate::{paste_to_clipboard, read_clipboard};
+use crate::{OutputType, SelectionType};
 
-pub fn init_keymaps() -> std::collections::HashMap<String, fn(&mut ProgramState, &str)> {
-    let mut key_maps = std::collections::HashMap::<String, fn(&mut ProgramState, &str)>::new();
+pub enum Action {
+    Break,
+}
+
+pub fn init_keymaps(
+) -> std::collections::HashMap<String, fn(&mut ProgramState, &str) -> Option<Action>> {
+    let mut key_maps = std::collections::HashMap::<String, fn(&mut ProgramState, &str) -> Option<Action>>::new();
+
+    key_maps.insert("q".to_owned(), |_program_state, _key| Some(Action::Break));
 
     key_maps.insert("$".to_owned(), |program_state, _key| {
         let max_values = program_state.selection_type.max_values();
         let sel_type = program_state.selection_type;
         let new_value = max_values[program_state.selected_item as usize % max_values.len()];
         sel_type.modify_color_based_on_selected_item(program_state, new_value);
+        None
     });
 
     for i in 0..=9 {
@@ -22,6 +30,7 @@ pub fn init_keymaps() -> std::collections::HashMap<String, fn(&mut ProgramState,
             let max_value = max_values[program_state.selected_item as usize % max_values.len()];
             let sel_type = program_state.selection_type;
             sel_type.modify_color_based_on_selected_item(program_state, max_value * mult);
+            None
         });
     }
 
@@ -36,6 +45,7 @@ pub fn init_keymaps() -> std::collections::HashMap<String, fn(&mut ProgramState,
             let new_value =
                 colors[program_state.selected_item as usize % color_count] + inc * amnt_mult;
             sel_type.modify_color_based_on_selected_item(program_state, new_value);
+            None
         });
     }
 
@@ -45,6 +55,7 @@ pub fn init_keymaps() -> std::collections::HashMap<String, fn(&mut ProgramState,
         } else {
             program_state.selected_item - 1
         };
+        None
     });
 
     key_maps.insert("j".to_owned(), |program_state, _key| {
@@ -52,7 +63,8 @@ pub fn init_keymaps() -> std::collections::HashMap<String, fn(&mut ProgramState,
             3 * (program_state.enable_alpha as u8)
         } else {
             program_state.selected_item + 1
-        }
+        };
+        None
     });
 
     key_maps.insert("i".to_owned(), |program_state, _key| {
@@ -68,6 +80,7 @@ pub fn init_keymaps() -> std::collections::HashMap<String, fn(&mut ProgramState,
                 SelectionType::HSL
             }
         };
+        None
     });
 
     key_maps.insert("I".to_owned(), |program_state, _key| {
@@ -89,7 +102,8 @@ pub fn init_keymaps() -> std::collections::HashMap<String, fn(&mut ProgramState,
             sel_type.modify_color_based_on_selected_item(program_state, n);
         } else {
             print!("\x1b[s\x1b[30;1H\x1b[31m{}\x1b[0m\x1b[u", "Invalid number");
-        }
+        };
+        None
     });
 
     key_maps.insert("o".to_owned(), |program_state, _key| {
@@ -100,7 +114,8 @@ pub fn init_keymaps() -> std::collections::HashMap<String, fn(&mut ProgramState,
             OutputType::ANSI => OutputType::HSL,
             OutputType::CUSTOM(..) => OutputType::HSL,
             OutputType::ALL => OutputType::HSL,
-        }
+        };
+        None
     });
 
     key_maps.insert("O".to_owned(), |program_state, _key| {
@@ -130,12 +145,14 @@ pub fn init_keymaps() -> std::collections::HashMap<String, fn(&mut ProgramState,
             );
             program_state.output_type = o_type
         }
+        None
     });
 
     key_maps.insert("n".to_owned(), |program_state, _key| {
         let mut reader = std::io::stdin();
         let clr = ui::input("New color: ", &mut reader, 30, 1);
         program_state.curr_color = ColorRepresentation::from_color(&clr);
+        None
     });
 
     key_maps.insert("y".to_owned(), |program_state, _key| {
@@ -143,7 +160,8 @@ pub fn init_keymaps() -> std::collections::HashMap<String, fn(&mut ProgramState,
             &program_state
                 .curr_color
                 .get_formatted_output_clr(&program_state.output_type, program_state.enable_alpha),
-        )
+        );
+        None
     });
 
     key_maps.insert("Y".to_owned(), |program_state, _key| {
@@ -152,11 +170,14 @@ pub fn init_keymaps() -> std::collections::HashMap<String, fn(&mut ProgramState,
                 .curr_color
                 .get_output_clr(&program_state.output_type, program_state.enable_alpha),
         );
+        None
     });
 
     key_maps.insert("p".to_owned(), |program_state, _key| {
+        let mut reader = std::io::stdin();
         let data = read_clipboard(&mut reader);
         program_state.curr_color = ColorRepresentation::from_color(&data);
+        None
     });
 
     key_maps.insert("a".to_owned(), |program_state, _key| {
@@ -167,6 +188,7 @@ pub fn init_keymaps() -> std::collections::HashMap<String, fn(&mut ProgramState,
                 program_state.enable_alpha = !program_state.enable_alpha;
             }
         }
+        None
     });
 
     return key_maps;

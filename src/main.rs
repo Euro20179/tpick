@@ -6,6 +6,7 @@ mod ui;
 mod keymaps;
 
 use color_representation::*;
+use keymaps::Action;
 
 use std::fmt::Display;
 use std::io::Read;
@@ -452,12 +453,12 @@ fn main() {
 
         let data = get_input(&mut reader);
 
-        if data == "q" {
-            break;
-        }
-
         if let Some(f) = key_mappings.get(&data) {
-            f(&mut program_state, &data);
+            if let Some(action) = f(&mut program_state, &data){
+                match action {
+                    Action::Break => break
+                }
+            }
         }
     }
     termios::tcsetattr(0, termios::TCSANOW, &tios_initial).unwrap();
