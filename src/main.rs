@@ -108,7 +108,7 @@ fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hs
     let modifier_idx = hsl_idx;
     colors[modifier_idx] = 0.0;
     let label = ['H', 'S', 'L'][hsl_idx];
-    let modifier_multiplier = [360.0, 1.0, 1.0][hsl_idx];
+    let modifier_multiplier = [360.0, 100.0, 100.0][hsl_idx];
     eprint!("{}", label);
     let mut color =
         ColorRepresentation::from_color(&format!("hsl({},{},{})", colors[0], colors[1], colors[2]));
@@ -228,7 +228,7 @@ impl SelectionType {
 
     fn max_values(&self) -> Vec<f32> {
         match self {
-            SelectionType::HSL => vec![359.0, 1.0, 1.0, 255.0],
+            SelectionType::HSL => vec![359.0, 100.0, 100.0, 255.0],
             SelectionType::RGB => vec![255.0, 255.0, 255.0, 255.0],
             SelectionType::ANSI256 => vec![255.0],
         }
@@ -236,9 +236,8 @@ impl SelectionType {
 
     fn increments(&self) -> Vec<f32> {
         match self {
-            Self::HSL => vec![1.0, 0.01, 0.01, 1.0],
+            Self::HSL | Self::RGB => vec![1.0, 1.0, 1.0, 1.0],
             Self::ANSI256 => vec![1.0],
-            Self::RGB => vec![1.0, 1.0, 1.0, 1.0],
         }
     }
 

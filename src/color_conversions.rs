@@ -1,4 +1,6 @@
-pub fn hsl2rgb(mut h: f32, s: f32, l: f32) -> (f32, f32, f32) {
+pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
+    s /= 100.0;
+    l /= 100.0;
     let (r, g, b);
     h %= 360.0;
     let lp = if l < 0.5 { l } else { 1.0 - l };
@@ -73,7 +75,7 @@ pub fn rgb2hsl(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32) {
         delta / (1.0 - (2.0 * l - 1.0).abs())
     };
 
-    return (h, s, l);
+    return (h, s * 100.0, l * 100.0);
 }
 
 //REMOVE the # before giving to this function

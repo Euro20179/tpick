@@ -42,15 +42,15 @@ impl ColorRepresentation {
         } else if clr.starts_with("hsla") {
             let mut items = clr[5..clr.len() - 1].split(",");
             let h: f32 = get_next(&mut items);
-            let s: f32 = get_next(&mut items) / 100.0;
-            let l: f32 = get_next(&mut items) / 100.0;
+            let s: f32 = get_next(&mut items);
+            let l: f32 = get_next(&mut items);
             a = items.next().unwrap().trim().parse().unwrap();
             (r, g, b) = hsl2rgb(h, s, l);
         } else if clr.starts_with("hsl") {
             let mut items = clr[4..clr.len() - 1].split(",");
             let h: f32 = get_next(&mut items);
-            let s: f32 = get_next(&mut items) / 100.0;
-            let l: f32 = get_next(&mut items) / 100.0;
+            let s: f32 = get_next(&mut items);
+            let l: f32 = get_next(&mut items);
             (r, g, b) = hsl2rgb(h, s, l);
         }
         //#RGB or #RGBA or #RRGGBB or #RRGGBBAA
@@ -121,8 +121,8 @@ impl ColorRepresentation {
 
     pub fn modify_hsl(&mut self, mut new_value: (f32, f32, f32)) {
         new_value.0 = clamp!(0.0, new_value.0, 359.0);
-        new_value.1 = clamp!(0.0, new_value.1, 1.0);
-        new_value.2 = clamp!(0.0, new_value.2, 1.0);
+        new_value.1 = clamp!(0.0, new_value.1, 100.0);
+        new_value.2 = clamp!(0.0, new_value.2, 100.0);
         (self.r, self.g, self.b) = hsl2rgb(new_value.0, new_value.1, new_value.2);
     }
 
@@ -216,9 +216,9 @@ impl ColorRepresentation {
     fn tohsl(&self, enable_alpha: bool) -> String {
         let (h, s, l) = self.hsl();
         if enable_alpha {
-            return format!("{}, {}, {}, {}", h, (s * 100.0), (l * 100.0), self.a);
+            return format!("{}, {}, {}, {}", h, s, l, self.a);
         }
-        return format!("{}, {}, {}", h, (s * 100.0), (l * 100.0));
+        return format!("{}, {}, {}", h, s, l);
     }
 
     fn torgb(&self, enable_alpha: bool) -> String {
