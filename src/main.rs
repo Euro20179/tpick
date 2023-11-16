@@ -525,6 +525,8 @@ fn main() {
 
     let key_mappings = keymaps::init_keymaps();
 
+    eprint!("\x1b[?1049h");
+
     cls();
 
     let bg_color = query_color(11, &mut reader);
@@ -549,6 +551,7 @@ fn main() {
         }
     }
     termios::tcsetattr(0, termios::TCSANOW, &tios_initial).unwrap();
+    eprint!("\x1b[?1049l");
     eprint!("\x1b[?25h");
     eprint!("\x1b]11;{}\x07", bg_color);
     eprint!("\x1b]10;{}\x07", fg_color);
