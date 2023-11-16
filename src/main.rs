@@ -241,19 +241,22 @@ unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize) {
     libc::ioctl(fd, libc::TIOCGWINSZ, ws_struct);
 }
 
-fn render_ansi256(selected_item: u8) {
+fn render_ansi256(selected_item: u8, square_count: u32) {
     for low_nr in 0..16 {
-        print!("\x1b[38;5;{}m{} ", low_nr, low_nr);
+        print!("\x1b[38;5;{}m{:3} ", low_nr, low_nr);
     }
     println!();
-    for i in 0..6 {
-        for clr_nr in ((16 + i)..=232).step_by(6) {
-            print!("\x1b[38;5;{}m{} ", clr_nr, clr_nr);
+    for x in 0..6 {
+        for i in 0..6 {
+            for j in 0..6 {
+                let n = 16 + i + (6 * j) + (36 * x);
+                print!("\x1b[38;5;{}m{:3} ", n, n)
+            }
         }
-        println!();
+            println!();
     }
     for grey_nr in 233..256 {
-        print!("\x1b[38;5;{}m{} ", grey_nr, grey_nr);
+        print!("\x1b[38;5;{}m{:3} ", grey_nr, grey_nr);
     }
     println!();
     println!("\x1b[0m");
@@ -267,7 +270,7 @@ fn ansi256_renderer(
     step: f32,
 ) {
     print!("\x1b[0H");
-    render_ansi256(selected_item);
+    render_ansi256(selected_item, square_count);
 }
 
 fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rgb_idx: usize) {
