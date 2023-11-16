@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 base64 = "0.21.5"
+clap = { version = "4.4.8", features = ["derive"] }
 libc = "0.2.150"
 termios = "0.3.3"

@@ -12,6 +12,7 @@ use std::fmt::Display;
 use std::io::Read;
 use std::os::fd::AsRawFd;
 
+use clap::Parser;
 use base64::engine::general_purpose;
 use base64::prelude::*;
 use termios::Termios;
@@ -416,12 +417,16 @@ fn get_input(reader: &mut std::io::Stdin) -> String {
     String::from_utf8(buf[0..bytes_read].to_vec()).unwrap()
 }
 
+#[derive(Parser, Debug)]
+#[command(long_about = "A color picker")]
+struct Args {
+    color: Option<String>
+}
+
 fn main() {
-    let mut args = std::env::args();
+    let args = Args::parse();
 
-    let _prog_name = args.next().unwrap();
-
-    let mut starting_clr = args.next().unwrap_or("#ff0000".to_owned());
+    let mut starting_clr = args.color.unwrap_or("#ff0000".to_string());
 
     let mut reader = std::io::stdin();
 
