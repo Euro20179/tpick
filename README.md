@@ -23,11 +23,14 @@ Currently there are no cli options.
 | 0-9     | set current value to 0%-90%                              |
 | $       | set current value to 100%                                |
 | o       | cycle output format                                      |
+| O       | Various output format options                            |
 | i       | cycle input format                                       |
+| I       | Input a number for the selected slider                   |
 | y       | copy output                                              |
 | Y       | copy ONLY the output value with no extra formatting      |
 | p       | Paste color from clipboard (can be any supported format) |
 | a       | Enable/disable alpha channel                             |
+| n       | Input a new color                                        |
 
 ## Variables
 
@@ -69,14 +72,14 @@ Currently there are no cli options.
 # Goals
 
 - [x] Swap between different selections
-    - [x] HSL
-    - [x] RGB
-    - [ ] CYMK
-    - [x] ANSI 256 color selection pannel
+  - [x] HSL
+  - [x] RGB
+  - [ ] CYMK
+  - [x] ANSI 256 color selection pannel
 - [x] Ability to input number for slider
 - [x] Swap between different outputs
   - [x] Let user pick from some kind of menu instead of cycling (or both)
-  - [ ] Option to display all outputs at once
+  - [x] Option to display all outputs at once
   - [x] Custom output formats
 - [ ] Specify starting value with cli option
 - [x] Copy output
@@ -84,10 +87,10 @@ Currently there are no cli options.
 - [x] Pressing a key to input a color
 - [ ] Cli options for setting default Input/Selection/Output formats
 - [ ] Event system
-    - would write to some kind of fifo/socket file that a shell script can read from
-    - events would include:
-        - color change
-        - selection type changed
+  - would write to some kind of fifo/socket file that a shell script can read from
+  - events would include:
+    - color change
+    - selection type changed
 - [ ] Config file
   - [ ] Custom output formats
   - [ ] Keybindings

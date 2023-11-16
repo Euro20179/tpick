@@ -137,12 +137,30 @@ impl ColorRepresentation {
             OutputType::RGB => self.torgb(enable_alpha),
             OutputType::HEX => self.tohex(enable_alpha),
             OutputType::CUSTOM(fmt) => self.tofmt(fmt),
+            OutputType::ALL => {
+                format!(
+                    "{}\n{}\n{}\n{}",
+                    self.tohsl(enable_alpha),
+                    self.torgb(enable_alpha),
+                    self.tohex(enable_alpha),
+                    self.toansi(false)
+                )
+            }
         };
     }
 
     fn get_formatted_output_clr(&self, output_type: &OutputType, enable_alpha: bool) -> String {
         return match output_type {
             OutputType::CUSTOM(fmt) => self.tofmt(fmt),
+            OutputType::ALL => {
+                format!(
+                    "{}\n{}\n{}\n{}",
+                    self.get_formatted_output_clr(&OutputType::HSL, enable_alpha),
+                    self.get_formatted_output_clr(&OutputType::RGB, enable_alpha),
+                    self.get_formatted_output_clr(&OutputType::HEX, enable_alpha),
+                    self.get_formatted_output_clr(&OutputType::ANSI, enable_alpha)
+                )
+            }
             OutputType::HSL => {
                 if enable_alpha {
                     format!("hsla({})", self.tohsl(enable_alpha))
@@ -410,6 +428,7 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
             program_state.curr_color.toansi(false)
         );
     }
+    print!("\x1b[J");
     program_state
         .output_type
         .render_output(&program_state.curr_color, program_state.enable_alpha);
@@ -484,18 +503,24 @@ enum OutputType {
     HEX,
     ANSI,
     CUSTOM(String),
+    ALL,
 }
 
 impl Display for OutputType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use OutputType::*;
-        write!(f, "{}", match self {
-            HSL => "HSL",
-            RGB => "RGB",
-            HEX => "HEX",
-            ANSI => "ANSI",
-            CUSTOM(n) => n
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                HSL => "HSL",
+                RGB => "RGB",
+                HEX => "HEX",
+                ANSI => "ANSI",
+                CUSTOM(n) => n,
+                ALL => "ALL",
+            }
+        )
     }
 }
 
@@ -778,10 +803,11 @@ fn main() {
                 OutputType::HEX => OutputType::ANSI,
                 OutputType::ANSI => OutputType::HSL,
                 OutputType::CUSTOM(..) => OutputType::HSL,
+                OutputType::ALL => OutputType::HSL,
             }
         } else if data == "O" {
             let how_to_select = ui::input(
-                "Type m for menu or f for a custom format: ",
+                "Type m for menu f for a custom format, or a to display all outputs: ",
                 &mut reader,
                 30,
                 1,
@@ -789,9 +815,20 @@ fn main() {
             if how_to_select == "f" {
                 let fmt = ui::input("Format: ", &mut reader, 30, 1);
                 program_state.output_type = OutputType::CUSTOM(fmt);
-            }
-            else {
-                let o_type = ui::selection_menu(vec![OutputType::HSL, OutputType::RGB, OutputType::HEX, OutputType::ANSI], &mut reader, 20, 1);
+            } else if how_to_select == "a" {
+                program_state.output_type = OutputType::ALL
+            } else {
+                let o_type = ui::selection_menu(
+                    vec![
+                        OutputType::HSL,
+                        OutputType::RGB,
+                        OutputType::HEX,
+                        OutputType::ANSI,
+                    ],
+                    &mut reader,
+                    20,
+                    1,
+                );
                 program_state.output_type = o_type
             }
         } else if data == "n" {
