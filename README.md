@@ -81,6 +81,7 @@ Currently there are no cli options.
   - [x] Let user pick from some kind of menu instead of cycling (or both)
   - [x] Option to display all outputs at once
   - [x] Custom output formats
+  - [ ] Show multiple different custom output formats
 - [ ] Specify starting value with cli option
 - [x] Copy output
 - [ ] Convert any supported format to any other supported format via cli.
@@ -90,6 +91,7 @@ Currently there are no cli options.
   - would write to some kind of fifo/socket file that a shell script can read from
   - events would include:
     - color change
+    - on color copy
     - selection type changed
 - [ ] Config file
   - [ ] Custom output formats
