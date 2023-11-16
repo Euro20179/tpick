@@ -221,6 +221,13 @@ enum SelectionType {
 }
 
 impl SelectionType {
+    fn from_string(name: &str) -> SelectionType {
+        match name.to_lowercase().as_str() {
+            "rgb" => SelectionType::RGB,
+            "ansi" => SelectionType::ANSI256,
+            _ => SelectionType::HSL,
+        }
+    }
     fn label_from_selected_item(&self, selected_item: u8) -> char {
         match self {
             SelectionType::HSL => ['H', 'S', 'L', 'A'][selected_item as usize],
@@ -349,7 +356,7 @@ fn read_osc_response(reader: &mut std::io::Stdin) -> String {
         if b[0] == 7 {
             break;
         }
-        if b[0] == b'\\' && result_str.ends_with("\x1b"){
+        if b[0] == b'\\' && result_str.ends_with("\x1b") {
             result_str = result_str.strip_suffix("\x1b").unwrap().to_string();
             break;
         }
@@ -448,11 +455,18 @@ struct Args {
     #[arg(short, long)]
     print_on_exit: bool,
     #[arg(short, long, help = "Enables use of --bg-clr and --fg-clr")]
-    use_custom_colors: bool,
+    custom_colors: bool,
     #[arg(short, long)]
     bg_clr: Option<String>,
     #[arg(short, long)]
     fg_clr: Option<String>,
+    #[arg(
+        short,
+        long,
+        help = "The starting input type",
+        long_help = "The starting input type\ncan be one of: HSL, RGB, ANSI"
+    )]
+    input_type: Option<String>,
 }
 
 fn main() {
@@ -464,7 +478,10 @@ fn main() {
         ColorRepresentation::from_color(&args.bg_clr.unwrap_or("#000000".to_string())).tohex(false);
     let requested_fg_color =
         ColorRepresentation::from_color(&args.fg_clr.unwrap_or("#ffffff".to_string())).tohex(false);
-    let use_custom_colors = args.use_custom_colors;
+    let use_custom_colors = args.custom_colors;
+
+    let requested_input_type =
+        SelectionType::from_string(&args.input_type.unwrap_or("HSL".to_string()));
 
     let mut reader = std::io::stdin();
 
@@ -500,7 +517,7 @@ fn main() {
 
     let mut program_state = ProgramState {
         selected_item: 0,
-        selection_type: SelectionType::HSL,
+        selection_type: requested_input_type,
         output_type: OutputType::HSL,
         enable_alpha: false,
         curr_color: ColorRepresentation::from_color(starting_clr.as_str()),
@@ -512,7 +529,7 @@ fn main() {
 
     let bg_color = query_color(11, &mut reader);
     let fg_color = query_color(10, &mut reader);
-    if use_custom_colors{
+    if use_custom_colors {
         eprint!("\x1b]11;#{}\x07", requested_bg_color);
         eprint!("\x1b]10;#{}\x07", requested_fg_color);
     }
