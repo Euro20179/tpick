@@ -124,8 +124,10 @@ impl ColorNameStandard {
             "beige" => "#f5f5dc",
             "bisque" => "#ffe4c4",
             "black" | "0" | "30" => "#000000",
+            "bright black" | "90" => "#4d4d4d", //xterm default for 90
             "blanched almond" => "#ffebcd",
             "blue" | "4" | "34" => self.blue(),
+            "bright blue" | "94" => "#0000ff", //xterm default for 94
             "blue violet" => "#8a2be2",
             "brown" => "#a52a2a",
             "burlywood" => "#deb887",
@@ -137,6 +139,7 @@ impl ColorNameStandard {
             "cornsilk" => "#fff8dc",
             "crimson" => "#dc143c",
             "cyan" | "6" | "36" => self.cyan(),
+            "bright cyan" | "96" => "#00ffff", //xterm default for 96
             "dark blue" => "#00008b",
             "dark cyan" => "#008b8b",
             "dark goldenrod" => "#b8860b",
@@ -168,7 +171,8 @@ impl ColorNameStandard {
             "goldenrod" => "#daa520",
             "gray" => self.gray(),
             "web gray" => "#808080",
-            "green" => self.green(),
+            "green" | "2" | "32" => self.green(),
+            "bright green" | "92" => "#00ff00", //xterm default for 92
             "web green" => "#008000",
             "green yellow" => "#adff2f",
             "honeydew" => "#f0fff0",
@@ -198,6 +202,7 @@ impl ColorNameStandard {
             "lime green" => "#32cd32",
             "linen" => "#faf0e6",
             "magenta" | "5" | "35" => self.magenta(),
+            "bright magenta" | "95" => "#ff00ff", //xterm default for 95
             "maroon" => self.maroon(),
             "web maroon" => "#800000",
             "medium aquamarine" => "#66cdaa",
@@ -235,6 +240,7 @@ impl ColorNameStandard {
             "web purple" => "#800080",
             "rebecca purple" => "#663399",
             "red" | "1" | "31" => self.red(),
+            "bright red" | "91" => "#ff0000", //xterm default for 91
             "rosy brown" => "#bc8f8f",
             "royal blue" => "#4169e1",
             "saddle brown" => "#8b4513",
@@ -258,8 +264,10 @@ impl ColorNameStandard {
             "violet" => "#ee82ee",
             "wheat" => "#f5deb3",
             "white" | "7" | "37" => self.white(),
+            "bright white" | "97" => "#ffffff", //xterm default for 97
             "white smoke" => "#f5f5f5",
             "yellow" | "3" | "33" => self.yellow(),
+            "bright yellow" | "93" => "#ffff00",
             "yellow green" => "#9acd32",
             _ => "#000000",
         }
