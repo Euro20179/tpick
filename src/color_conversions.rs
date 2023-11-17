@@ -106,6 +106,7 @@ pub fn ansi2562rgb(ansi: u8, low_rgb: &Vec<String>) -> (u8, u8, u8) {
     return (r, g, b);
 }
 
+#[derive(clap::ValueEnum, Debug, Clone, PartialEq)]
 pub enum ColorNameStandard {
     X11,
     W3C,

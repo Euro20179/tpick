@@ -214,7 +214,7 @@ struct ProgramState {
 }
 
 //TODO: remove u8 requirement, keep track of that with ProgramState.selected_item
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, clap::ValueEnum, Debug)]
 enum SelectionType {
     HSL,
     RGB,
@@ -455,8 +455,8 @@ struct Args {
     color: Option<String>,
     #[arg(short, long)]
     print_on_exit: bool,
-    #[arg(short, long, help = "Color naming standard\nX11\nW3C", long_help = "Color naming standard\nX11: Colors used in the X11 display server\nW3C: Colors standardized for the web")]
-    clr_standard: Option<String>,
+    #[arg(short, long, help = "Color naming standard", long_help = "Color naming standard\nx11: Colors used in the X11 display server\nw3c: Colors standardized for the web\nThis is used to resolve conflicting names such as 'green'\nsee \x1b[34m\x1b]8;;https://en.wikipedia.org/wiki/X11_color_names#Clashes_between_web_and_X11_colors_in_the_CSS_color_scheme\x1b\\this wikipedia article\x1b]8;;\x07\x1b[0m for more information")]
+    clr_standard: Option<ColorNameStandard>,
     #[arg(short = 'C', long, help = "Enables use of --bg-clr and --fg-clr")]
     custom_colors: bool,
     #[arg(short, long)]
@@ -467,9 +467,9 @@ struct Args {
         short,
         long,
         help = "The starting input type",
-        long_help = "The starting input type\ncan be one of: HSL, RGB, ANSI"
+        long_help = "The starting input type"
     )]
-    input_type: Option<String>,
+    input_type: Option<SelectionType>,
     #[command(subcommand)]
     convert: Option<ConvertSub>
 }
@@ -501,8 +501,7 @@ fn main() {
         ColorRepresentation::from_color(&args.fg_clr.unwrap_or("#ffffff".to_string()), &ColorNameStandard::W3C).tohex(false);
     let use_custom_colors = args.custom_colors;
 
-    let requested_input_type =
-        SelectionType::from_string(&args.input_type.unwrap_or("HSL".to_string()));
+    let requested_input_type = args.input_type.unwrap_or(SelectionType::HSL);
 
     let mut reader = std::io::stdin();
 
@@ -511,15 +510,14 @@ fn main() {
         let _ = reader.read_line(&mut starting_clr);
         starting_clr = starting_clr.trim().to_string();
     }
-    let clr_std = args.clr_standard.unwrap_or("W3C".to_owned());
-    let std = if clr_std == "X11" { ColorNameStandard::X11 } else { ColorNameStandard::W3C };
+    let clr_std = args.clr_standard.unwrap_or(ColorNameStandard::W3C);
 
     let mut program_state = ProgramState {
         selected_item: 0,
         selection_type: requested_input_type,
         output_type: OutputType::HSL,
         enable_alpha: false,
-        curr_color: ColorRepresentation::from_color(starting_clr.as_str(), &std),
+        curr_color: ColorRepresentation::from_color(starting_clr.as_str(), &clr_std),
     };
 
     if let Some(ConvertSub::Convert(conversion)) = args.convert{
