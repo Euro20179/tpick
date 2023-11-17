@@ -213,7 +213,10 @@ impl ColorRepresentation {
         }
         let (h, s, l) = self.hsl();
         let ch_to_value = hashmap! {
-            "R" => self.r, "G" => self.g, "B" => self.b, "H" => h, "S" => s, "L" => l, "A" => self.a as f32
+            "R" => self.r, "G" => self.g, "B" => self.b,
+            "H" => h, "S" => s, "L" => l,
+            "A" => self.a as f32,
+            "D" => (self.r as i32 * ((256i32).pow(2)) + self.g as i32 * 256) as f32 + self.b
         };
         let mut result = String::new();
         let mut is_fmt_char = false;
@@ -227,10 +230,14 @@ impl ColorRepresentation {
             }
             if is_fmt_char {
                 if let Some(v) = ch_to_value.get(ch) {
-                    result += &fmt_char_type.format(*v as u8);
+                    result += &fmt_char_type.format(*v as u32);
                 } else if ch == "x" {
                     fmt_char_type = FormatType::Hex;
                     continue;
+                } else if ch == "n" {
+                    result += "\n"
+                } else if ch == "t" {
+                    result += "\t"
                 }
             } else {
                 result += ch;
