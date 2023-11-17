@@ -79,7 +79,7 @@ fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rg
     eprint!("{}", label);
     //create the starting color based on the list of colors
     let mut color =
-        ColorRepresentation::from_color(&format!("rgb({},{},{})", colors[0], colors[1], colors[2]));
+        ColorRepresentation::from_color(&format!("rgb({},{},{})", colors[0], colors[1], colors[2]), &ColorNameStandard::W3C);
     for i in 0..square_count {
         //print a square with the correct color
         eprint!("\x1b[38;2;{}m█", color.toansi(false));
@@ -115,7 +115,7 @@ fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hs
     let modifier_multiplier = [360.0, 100.0, 100.0][hsl_idx];
     eprint!("{}", label);
     let mut color =
-        ColorRepresentation::from_color(&format!("hsl({},{},{})", colors[0], colors[1], colors[2]));
+        ColorRepresentation::from_color(&format!("hsl({},{},{})", colors[0], colors[1], colors[2]), &ColorNameStandard::W3C);
     for i in 0..square_count {
         eprint!("\x1b[38;2;{}m█", color.toansi(false));
         colors[modifier_idx] = (i as f32 / square_count as f32) * modifier_multiplier;
@@ -139,7 +139,7 @@ fn hsl_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_coun
 
 fn render_a(square_count: u32) {
     eprint!("A");
-    let mut sat_color_rep = ColorRepresentation::from_color("#000000");
+    let mut sat_color_rep = ColorRepresentation::from_color("#000000", &ColorNameStandard::W3C);
     for i in 0..square_count {
         eprint!("\x1b[38;2;{}m█", sat_color_rep.toansi(false));
         sat_color_rep.modify_hsl((0.0, 0.0, (i as f32 / square_count as f32)))
@@ -455,6 +455,8 @@ struct Args {
     color: Option<String>,
     #[arg(short, long)]
     print_on_exit: bool,
+    #[arg(short, long, help = "Color naming standard\nX11\nW3C", long_help = "Color naming standard\nX11: Colors used in the X11 display server\nW3C: Colors standardized for the web")]
+    clr_standard: Option<String>,
     #[arg(short = 'C', long, help = "Enables use of --bg-clr and --fg-clr")]
     custom_colors: bool,
     #[arg(short, long)]
@@ -494,9 +496,9 @@ fn main() {
     let mut starting_clr = args.color.unwrap_or("#ff0000".to_string());
 
     let requested_bg_color =
-        ColorRepresentation::from_color(&args.bg_clr.unwrap_or("#000000".to_string())).tohex(false);
+        ColorRepresentation::from_color(&args.bg_clr.unwrap_or("#000000".to_string()), &ColorNameStandard::W3C).tohex(false);
     let requested_fg_color =
-        ColorRepresentation::from_color(&args.fg_clr.unwrap_or("#ffffff".to_string())).tohex(false);
+        ColorRepresentation::from_color(&args.fg_clr.unwrap_or("#ffffff".to_string()), &ColorNameStandard::W3C).tohex(false);
     let use_custom_colors = args.custom_colors;
 
     let requested_input_type =
@@ -509,13 +511,15 @@ fn main() {
         let _ = reader.read_line(&mut starting_clr);
         starting_clr = starting_clr.trim().to_string();
     }
+    let clr_std = args.clr_standard.unwrap_or("W3C".to_owned());
+    let std = if clr_std == "X11" { ColorNameStandard::X11 } else { ColorNameStandard::W3C };
 
     let mut program_state = ProgramState {
         selected_item: 0,
         selection_type: requested_input_type,
         output_type: OutputType::HSL,
         enable_alpha: false,
-        curr_color: ColorRepresentation::from_color(starting_clr.as_str()),
+        curr_color: ColorRepresentation::from_color(starting_clr.as_str(), &std),
     };
 
     if let Some(ConvertSub::Convert(conversion)) = args.convert{

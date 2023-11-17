@@ -4,6 +4,9 @@ use std::str::Split;
 
 use std::io::Write;
 
+use crate::color_conversions::ColorNameStandard;
+use crate::color_conversions::hex62rgb;
+use crate::color_conversions::name_to_hex;
 use crate::hsl2rgb;
 use crate::rgb2hsl;
 use crate::OutputType;
@@ -34,7 +37,7 @@ pub struct ColorRepresentation {
 }
 
 impl ColorRepresentation {
-    pub fn from_color(clr: &str) -> ColorRepresentation {
+    pub fn from_color(clr: &str, clr_name_standard: &ColorNameStandard) -> ColorRepresentation {
         let mut r: f32 = 0.0;
         let mut g: f32 = 0.0;
         let mut b: f32 = 0.0;
@@ -104,6 +107,10 @@ impl ColorRepresentation {
                     (r, g, b) = (0.0, 0.0, 0.0);
                 }
             }
+        }
+        else {
+            let (r8, g8, b8) = hex62rgb(&name_to_hex(clr, clr_name_standard)[1..]);
+            (r, g, b) = (r8 as f32, g8 as f32, b8 as f32);
         }
         ColorRepresentation { r, g, b, a }
     }

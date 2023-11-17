@@ -1,4 +1,7 @@
+use clap::builder::styling::Color;
+
 use crate::cls;
+use crate::color_conversions::ColorNameStandard;
 use crate::ui;
 use crate::ColorRepresentation;
 use crate::ProgramState;
@@ -166,7 +169,7 @@ pub fn init_keymaps(
     key_maps.insert("n".to_owned(), |program_state, _key| {
         let mut reader = std::io::stdin();
         let clr = ui::input("New color: ", &mut reader, 30, 1);
-        program_state.curr_color = ColorRepresentation::from_color(&clr);
+        program_state.curr_color = ColorRepresentation::from_color(&clr, &ColorNameStandard::W3C);
         None
     });
 
@@ -191,7 +194,7 @@ pub fn init_keymaps(
     key_maps.insert("p".to_owned(), |program_state, _key| {
         let mut reader = std::io::stdin();
         let data = read_clipboard(&mut reader);
-        program_state.curr_color = ColorRepresentation::from_color(&data);
+        program_state.curr_color = ColorRepresentation::from_color(&data, &ColorNameStandard::W3C);
         None
     });
 
