@@ -44,7 +44,7 @@ pub fn selection_menu<T: Display + Clone>(items: Vec<T>, reader: &mut std::io::S
         if b[0] == 10 {
             break;
         }
-        if b[0] - 48 < items.len() as u8 {
+        if b[0] >= 48 && b[0] - 48 < items.len() as u8 {
             curr_selection = (b[0] - 48) as usize;
             break;
         }
