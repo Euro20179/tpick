@@ -89,7 +89,7 @@ Currently there are no cli options.
 - [x] Copy output
 - [x] Convert any supported format to any other supported format via cli.
 - [x] Pressing a key to input a color
-- [ ] Cli options for setting default Input/Selection/Output formats
+- [x] Cli options for setting default Selection/Output formats
 - [ ] Event system
   - would write to some kind of fifo/socket file that a shell script can read from
   - events would include:

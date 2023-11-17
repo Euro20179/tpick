@@ -486,6 +486,10 @@ struct Args {
         long_help = "The starting input type"
     )]
     input_type: Option<SelectionType>,
+    #[arg(short, long, help = "The output format type")]
+    output_type: Option<RequestedOutputType>,
+    #[arg(short = 'F', long = "of", help = "Custom format for the CUSTOM format type")]
+    output_fmt: Option<String>,
     #[command(subcommand)]
     convert: Option<ConvertSub>,
 }
@@ -535,10 +539,17 @@ fn main() {
     }
     let clr_std = args.clr_standard.unwrap_or(ColorNameStandard::W3C);
 
+    let output_type = match args.output_type.unwrap_or(RequestedOutputType::HSL){
+        RequestedOutputType::HSL => OutputType::HSL,
+        RequestedOutputType::RGB => OutputType::RGB,
+        RequestedOutputType::HEX => OutputType::HEX,
+        RequestedOutputType::CUSTOM => OutputType::CUSTOM(args.output_fmt.unwrap_or("%xD".to_string()))
+    };
+
     let mut program_state = ProgramState {
         selected_item: 0,
         selection_type: requested_input_type,
-        output_type: OutputType::HSL,
+        output_type,
         enable_alpha: false,
         curr_color: ColorRepresentation::from_color(starting_clr.as_str(), &clr_std),
     };
