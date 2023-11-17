@@ -364,7 +364,7 @@ fn read_osc_response(reader: &mut std::io::Stdin) -> String {
 }
 
 fn read_ansi_color(reader: &mut std::io::Stdin, clr_num: u8) -> [u8; 3] {
-    eprintln!("\x1b]4;{};?\x07", clr_num);
+    eprint!("\x1b]4;{};?\x07", clr_num);
     let clr_buf = read_osc_response(reader);
     //parses out garbage, gives us rr/gg/bb
     let data = &clr_buf
@@ -445,6 +445,9 @@ fn setup_term() -> (termios::Termios, termios::Termios) {
 
     return (tios_initial, tios);
 }
+fn close_term(initial_ios: &termios::Termios) {
+    termios::tcsetattr(0, termios::TCSANOW, &initial_ios).unwrap();
+}
 
 fn get_input(reader: &mut std::io::Stdin) -> String {
     let mut buf = [0; 32];
@@ -468,6 +471,8 @@ struct Args {
     color: Option<String>,
     #[arg(short, long)]
     print_on_exit: bool,
+    #[arg(short, long)]
+    list_colors: bool,
     #[arg(
         short,
         long,
@@ -569,6 +574,14 @@ fn main() {
 
     let (tios_initial, _tios) = setup_term();
 
+    if args.list_colors {
+        for (k, v) in clr_std.list_colors() {
+            println!("{}: #{}", k, ColorRepresentation::from_color(&format!("{};{};{}", v[0], v[1], v[2]), &clr_std))
+        }
+        close_term(&tios_initial);
+        return;
+    }
+
     let mut program_state = ProgramState {
         selected_item: 0,
         selection_type: requested_input_type,
@@ -580,7 +593,7 @@ fn main() {
 
     if let Some(ConvertSub::Convert(conversion)) = args.convert {
         convert(conversion, &program_state.curr_color);
-        termios::tcsetattr(0, termios::TCSANOW, &tios_initial).unwrap();
+        close_term(&tios_initial);
         return;
     }
 
@@ -629,7 +642,7 @@ fn main() {
             }
         }
     }
-    termios::tcsetattr(0, termios::TCSANOW, &tios_initial).unwrap();
+    close_term(&tios_initial);
     eprint!("\x1b[?1049l");
     eprint!("\x1b[?25h");
     eprint!("\x1b]11;{}\x07", bg_color);
