@@ -25,10 +25,6 @@ fn cls() {
     eprint!("\x1b[2J\x1b[0H");
 }
 
-unsafe fn query_winsize(fd: i32, ws_struct: &mut libc::winsize) {
-    libc::ioctl(fd, libc::TIOCGWINSZ, ws_struct);
-}
-
 fn render_ansi256(selected_item: u8, _square_count: u32) {
     eprint!(" ");
     for low_nr in 0..16 {
@@ -346,12 +342,12 @@ impl OutputType {
     }
 }
 
-fn read_osc_response(reader: &mut std::io::Stdin) -> String {
+fn read_osc_response(reader: &mut std::io::Stdin, end_byte: u8) -> String {
     let mut result_str = String::new();
     let mut b = [0; 1];
     loop {
         reader.read_exact(&mut b).unwrap();
-        if b[0] == 7 {
+        if b[0] == end_byte {
             break;
         }
         if b[0] == b'\\' && result_str.ends_with("\x1b") {
@@ -363,9 +359,18 @@ fn read_osc_response(reader: &mut std::io::Stdin) -> String {
     return result_str;
 }
 
+fn query_window_area(reader: &mut std::io::Stdin) -> [i32; 2] {
+    eprint!("\x1b[18t");
+    let area = read_osc_response(reader, b't');
+    let mut split = area.split(";");
+    let rows = split.nth(1).unwrap().parse().unwrap_or(80);
+    let cols = split.next().unwrap().parse().unwrap_or(24);
+    return [rows, cols];
+}
+
 fn read_ansi_color(reader: &mut std::io::Stdin, clr_num: u8) -> [u8; 3] {
     eprint!("\x1b]4;{};?\x07", clr_num);
-    let clr_buf = read_osc_response(reader);
+    let clr_buf = read_osc_response(reader, 7);
     //parses out garbage, gives us rr/gg/bb
     let data = &clr_buf
         .as_str()
@@ -398,7 +403,7 @@ fn get_ansi_30_and_90(reader: &mut std::io::Stdin) -> Vec<String> {
 ///clr can be 10 or 11
 fn query_color(clr: u8, reader: &mut std::io::Stdin) -> String {
     eprint!("\x1b]{};?\x07", clr);
-    let clr_buf = read_osc_response(reader);
+    let clr_buf = read_osc_response(reader, 7);
     //parses out garbage, gives us rr/gg/bb
     let data = &clr_buf
         .as_str()
@@ -423,7 +428,7 @@ fn paste_to_clipboard(data: &str) {
 fn read_clipboard(reader: &mut std::io::Stdin) -> String {
     eprintln!("\x1b]52;c;?\x07");
 
-    let clip_buf = read_osc_response(reader);
+    let clip_buf = read_osc_response(reader, 7);
 
     let clip_data = clip_buf.split(";").nth(2).unwrap();
 
@@ -534,27 +539,8 @@ fn main() {
 
     let key_mappings = keymaps::init_keymaps();
 
-    let mut wsz = libc::winsize {
-        ws_row: 0,
-        ws_col: 0,
-        ws_xpixel: 0,
-        ws_ypixel: 0,
-    };
-
-    unsafe {
-        query_winsize(0, &mut wsz);
-    }
-
-    //this variable keeps track of the step for the step increase for the HSL/RGB rendering
-    let step = (360.0
-        / (wsz.ws_col - 1/*the minus 1 is because we need to leave space for the label*/) as f32)
-        .ceil();
-
-    let square_count = (360.0 / step).ceil() as u32;
 
     eprint!("\x1b[?1049h");
-
-    cls();
 
     let bg_color = query_color(11, &mut reader);
     let fg_color = query_color(10, &mut reader);
@@ -564,7 +550,17 @@ fn main() {
     }
     eprint!("\x1b[?25l");
 
+    cls();
+
     loop {
+        let [rows, cols] = query_window_area(&mut reader);
+
+        //this variable keeps track of the step for the step increase for the HSL/RGB rendering
+        let step = (360.0
+            / (cols - 1/*the minus 1 is because we need to leave space for the label*/) as f32)
+            .ceil();
+
+        let square_count = (360.0 / step).ceil() as u32;
         render_display(&program_state, square_count, step);
 
         let data = get_input(&mut reader);
