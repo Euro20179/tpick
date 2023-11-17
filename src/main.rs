@@ -214,6 +214,7 @@ struct ProgramState {
     enable_alpha: bool,
     output_type: OutputType,
     curr_color: ColorRepresentation,
+    clr_std: ColorNameStandard,
 }
 
 //TODO: remove u8 requirement, keep track of that with ProgramState.selected_item
@@ -573,6 +574,7 @@ fn main() {
         selection_type: requested_input_type,
         output_type,
         enable_alpha: false,
+        clr_std,
         curr_color: ColorRepresentation::from_color(starting_clr.as_str(), &clr_std),
     };
 

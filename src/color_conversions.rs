@@ -1,4 +1,6 @@
-use crate::read_ansi_color;
+use std::collections::HashMap;
+
+use crate::{hashmap, read_ansi_color};
 
 pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
     s /= 100.0;
@@ -108,7 +110,7 @@ pub fn ansi2562rgb(ansi: u8, low_rgb: &Vec<String>) -> (u8, u8, u8) {
     return (r, g, b);
 }
 
-#[derive(clap::ValueEnum, Debug, Clone, PartialEq)]
+#[derive(clap::ValueEnum, Debug, Clone, PartialEq, Copy)]
 pub enum ColorNameStandard {
     X11,
     W3C,
@@ -117,8 +119,43 @@ pub enum ColorNameStandard {
 }
 
 impl ColorNameStandard {
-    fn get_color(&self, clr: &str) -> String{
-        match clr {
+    fn fmt_u8_clr_fn(&self, func: fn(&ColorNameStandard) -> [u8; 3]) -> String {
+        let clr = func(self);
+        return format!("#{:02x}{:02x}{:02x}", clr[0], clr[1], clr[2]);
+    }
+    fn get_color(&self, clr: &str) -> String {
+        type TermClrConvertFn = fn(&ColorNameStandard) -> [u8; 3];
+        let low_color_map: HashMap<[&str; 3], Box<fn(&ColorNameStandard) -> [u8; 3]>> = hashmap! {
+            ["black", "0", "30"] => Box::new(ColorNameStandard::black as TermClrConvertFn),
+            ["red" , "1" , "31"] => Box::new(ColorNameStandard::red as TermClrConvertFn),
+            ["yellow" , "3" , "33"] => Box::new(ColorNameStandard::yellow as TermClrConvertFn),
+            ["green" , "2" , "32"] => Box::new(ColorNameStandard::green as TermClrConvertFn),
+            ["blue" , "4" , "34"] => Box::new(ColorNameStandard::blue as TermClrConvertFn),
+            ["magenta" , "5" , "35"] => Box::new(ColorNameStandard::magenta as TermClrConvertFn),
+            ["cyan" , "6" , "36" ] => Box::new(ColorNameStandard::cyan as TermClrConvertFn),
+            ["white" , "7" , "37"] => Box::new(ColorNameStandard::white as TermClrConvertFn),
+        };
+        let bright_low_color_map: HashMap<[&str; 2], Box<TermClrConvertFn>> = hashmap! {
+            ["bright black", "90"] => Box::new(ColorNameStandard::bright_black as TermClrConvertFn),
+            ["bright red", "91"] => Box::new(ColorNameStandard::bright_red as TermClrConvertFn),
+            ["bright green", "92" ] => Box::new(ColorNameStandard::bright_green as TermClrConvertFn),
+            ["bright blue", "94"] => Box::new(ColorNameStandard::bright_blue as TermClrConvertFn),
+            ["bright cyan", "96"] => Box::new(ColorNameStandard::bright_cyan as TermClrConvertFn),
+            ["bright magenta", "95"] => Box::new(ColorNameStandard::bright_magenta as TermClrConvertFn),
+            ["bright white", "97"] => Box::new(ColorNameStandard::bright_white as TermClrConvertFn),
+            ["bright yellow", "93"] => Box::new(ColorNameStandard::bright_yellow as TermClrConvertFn),
+        };
+        for clr_list in low_color_map.keys() {
+            if clr_list.contains(&clr) {
+                return self.fmt_u8_clr_fn(*low_color_map[clr_list]);
+            }
+        }
+        for clr_list in bright_low_color_map.keys() {
+            if clr_list.contains(&clr) {
+                return self.fmt_u8_clr_fn(*bright_low_color_map[clr_list]);
+            }
+        }
+        let clr = match clr {
             "alice blue" => "#f0f8ff",
             "antique white" => "#faebd7",
             "aqua" => "#00ffff",
@@ -126,17 +163,7 @@ impl ColorNameStandard {
             "azure" => "#f0ffff",
             "beige" => "#f5f5dc",
             "bisque" => "#ffe4c4",
-            "black" | "0" | "30" => {
-                let black = self.black();
-                return format!("#{:02x}{:02x}{:02x}", black[0], black[1], black[2]);
-            },
-            "bright black" | "90" => "#4d4d4d", //xterm default for 90
             "blanched almond" => "#ffebcd",
-            "blue" | "4" | "34" => {
-                let blue = self.blue();
-                return format!("#{:02x}{:02x}{:02x}", blue[0], blue[1], blue[2]);
-            },
-            "bright blue" | "94" => "#0000ff", //xterm default for 94
             "blue violet" => "#8a2be2",
             "brown" => "#a52a2a",
             "burlywood" => "#deb887",
@@ -147,11 +174,6 @@ impl ColorNameStandard {
             "cornflower blue" => "#6495ed",
             "cornsilk" => "#fff8dc",
             "crimson" => "#dc143c",
-            "cyan" | "6" | "36" => {
-                let cyan = self.cyan();
-                return format!("#{:02x}{:02x}{:02x}", cyan[0], cyan[1], cyan[2]);
-            },
-            "bright cyan" | "96" => "#00ffff", //xterm default for 96
             "dark blue" => "#00008b",
             "dark cyan" => "#008b8b",
             "dark goldenrod" => "#b8860b",
@@ -183,11 +205,6 @@ impl ColorNameStandard {
             "goldenrod" => "#daa520",
             "gray" => self.gray(),
             "web gray" => "#808080",
-            "green" | "2" | "32" => {
-                let green = self.green();
-                return format!("#{:02x}{:02x}{:02x}", green[0], green[1], green[2]);
-            },
-            "bright green" | "92" => "#00ff00", //xterm default for 92
             "web green" => "#008000",
             "green yellow" => "#adff2f",
             "honeydew" => "#f0fff0",
@@ -216,11 +233,6 @@ impl ColorNameStandard {
             "lime" => "#00ff00",
             "lime green" => "#32cd32",
             "linen" => "#faf0e6",
-            "magenta" | "5" | "35" => {
-                let magenta = self.magenta();
-                return format!("#{:02x}{:02x}{:02x}", magenta[0], magenta[1], magenta[2]);
-            },
-            "bright magenta" | "95" => "#ff00ff", //xterm default for 95
             "maroon" => self.maroon(),
             "web maroon" => "#800000",
             "medium aquamarine" => "#66cdaa",
@@ -257,11 +269,6 @@ impl ColorNameStandard {
             "purple" => self.purple(),
             "web purple" => "#800080",
             "rebecca purple" => "#663399",
-            "red" | "1" | "31" => {
-                let red = self.red();
-                return format!("#{:02x}{:02x}{:02x}", red[0], red[1], red[2]);
-            },
-            "bright red" | "91" => "#ff0000", //xterm default for 91
             "rosy brown" => "#bc8f8f",
             "royal blue" => "#4169e1",
             "saddle brown" => "#8b4513",
@@ -284,25 +291,21 @@ impl ColorNameStandard {
             "turquoise" => "#40e0d0",
             "violet" => "#ee82ee",
             "wheat" => "#f5deb3",
-            "white" | "7" | "37" => {
-                let white = self.white();
-                return format!("#{:02x}{:02x}{:02x}", white[0], white[1], white[2]);
-            },
-            "bright white" | "97" => "#ffffff", //xterm default for 97
             "white smoke" => "#f5f5f5",
-            "yellow" | "3" | "33" => {
-                let yellow = self.yellow();
-                return format!("#{:02x}{:02x}{:02x}", yellow[0], yellow[1], yellow[2]);
-            },
-            "bright yellow" | "93" => "#ffff00",
             "yellow green" => "#9acd32",
             _ => "#000000",
-        }.to_owned()
+        };
+        return clr.to_owned();
     }
 }
 
 //TODO:
 //make it so that each color name standard only implements its own colors, this is more expandable
+
+fn get_ansi_clr_num_with_reader(num: u8) -> [u8; 3] {
+    let mut reader = std::io::stdin();
+    read_ansi_color(&mut reader, num)
+}
 
 impl ColorNameStandard {
     fn gray(&self) -> &str {
@@ -311,84 +314,109 @@ impl ColorNameStandard {
             _ => "#808080",
         }
     }
-    fn black(&self) -> [u8; 3]{
+    fn black(&self) -> [u8; 3] {
         match self {
-            Self::MyTerm => {
-                let mut reader = std::io::stdin();
-                read_ansi_color(&mut reader, 0)
-            },
-            _ => [0, 0, 0]
+            Self::MyTerm => get_ansi_clr_num_with_reader(0),
+            _ => [0, 0, 0],
         }
     }
-    fn red(&self) -> [u8; 3]{
+    fn bright_black(&self) -> [u8; 3] {
+        match self {
+            Self::MyTerm => get_ansi_clr_num_with_reader(8),
+            Self::XTerm => [0x4d, 0x4d, 0x4d],
+            _ => [0xff, 0, 0],
+        }
+    }
+    fn red(&self) -> [u8; 3] {
         match self {
             Self::XTerm => [0xcd, 0, 0],
-            Self::MyTerm => {
-                let mut reader = std::io::stdin();
-                read_ansi_color(&mut reader, 1)
-            }
-            _ => [0xff, 0, 0]
+            Self::MyTerm =>get_ansi_clr_num_with_reader(1),
+            _ => [0xff, 0, 0],
+        }
+    }
+    fn bright_red(&self) -> [u8; 3] {
+        match self {
+            Self::MyTerm =>get_ansi_clr_num_with_reader(9),
+            _ => [0xff, 0, 0],
         }
     }
     fn green(&self) -> [u8; 3] {
         match self {
             Self::X11 => [0x00, 0xff, 0x00],
             Self::XTerm => [0, 0xcd, 0],
-            Self::MyTerm => {
-                let mut reader = std::io::stdin();
-                read_ansi_color(&mut reader, 2)
-            }
+            Self::MyTerm =>get_ansi_clr_num_with_reader(2),
             _ => [0, 0x80, 0],
+        }
+    }
+    fn bright_green(&self) -> [u8; 3] {
+        match self {
+            Self::MyTerm =>get_ansi_clr_num_with_reader(0xA),
+            _ => [0x00, 0xff, 0x00],
         }
     }
     fn yellow(&self) -> [u8; 3] {
         match self {
             Self::XTerm => [0xcd, 0xcd, 0x00],
-            Self::MyTerm => {
-                let mut reader = std::io::stdin();
-                read_ansi_color(&mut reader, 3)
-            }
-            _ => [0xff, 0xff, 0x00]
+            Self::MyTerm =>get_ansi_clr_num_with_reader(3),
+            _ => [0xff, 0xff, 0x00],
         }
     }
-    fn blue(&self) -> [u8; 3]{
+    fn blue(&self) -> [u8; 3] {
         match self {
             Self::XTerm => [0x00, 0x00, 0xcd],
-            Self::MyTerm => {
-                let mut reader = std::io::stdin();
-                read_ansi_color(&mut reader, 4)
-            }
+            Self::MyTerm =>get_ansi_clr_num_with_reader(4),
+            _ => [0x00, 0x00, 0xff],
+        }
+    }
+    fn bright_blue(&self) -> [u8; 3]{
+        match self {
+            Self::MyTerm => get_ansi_clr_num_with_reader(0xC),
             _ => [0x00, 0x00, 0xff]
         }
     }
-    fn magenta(&self) -> [u8; 3]{
+    fn magenta(&self) -> [u8; 3] {
         match self {
             Self::XTerm => [0xcd, 0x00, 0xcd],
-            Self::MyTerm => {
-                let mut reader = std::io::stdin();
-                read_ansi_color(&mut reader, 5)
-            }
+            Self::MyTerm =>get_ansi_clr_num_with_reader(5),
+            _ => [0xff, 0x00, 0xff],
+        }
+    }
+    fn bright_magenta(&self) -> [u8; 3]{
+        match self {
+            Self::MyTerm => get_ansi_clr_num_with_reader(0xD),
             _ => [0xff, 0x00, 0xff]
         }
     }
-    fn cyan(&self) -> [u8; 3]{
+    fn cyan(&self) -> [u8; 3] {
         match self {
             Self::XTerm => [0x00, 0xcd, 0xcd],
-            Self::MyTerm => {
-                let mut reader = std::io::stdin();
-                read_ansi_color(&mut reader, 6)
-            }
+            Self::MyTerm =>get_ansi_clr_num_with_reader(6),
+            _ => [0x00, 0xff, 0xff],
+        }
+    }
+    fn bright_cyan(&self) -> [u8; 3]{
+        match self {
+            Self::MyTerm => get_ansi_clr_num_with_reader(0xE),
             _ => [0x00, 0xff, 0xff]
         }
     }
-    fn white(&self) -> [u8; 3]{
+    fn white(&self) -> [u8; 3] {
         match self {
             Self::XTerm => [0xe5, 0xe5, 0xe5],
-            Self::MyTerm => {
-                let mut reader = std::io::stdin();
-                read_ansi_color(&mut reader, 7)
-            }
+            Self::MyTerm =>get_ansi_clr_num_with_reader(7),
+            _ => [0xff, 0xff, 0xff],
+        }
+    }
+    fn bright_white(&self) -> [u8; 3]{
+        match self {
+            Self::MyTerm => get_ansi_clr_num_with_reader(0xf),
             _ => [0xff, 0xff, 0xff]
+        }
+    }
+    fn bright_yellow(&self) -> [u8; 3]{
+        match self {
+            Self::MyTerm => get_ansi_clr_num_with_reader(0xB),
+            _ => [0xff, 0xff, 0x00]
         }
     }
     fn maroon(&self) -> &str {
@@ -405,6 +433,6 @@ impl ColorNameStandard {
     }
 }
 
-pub fn name_to_hex<'a>(name: &str, color_name_standard: &'a ColorNameStandard) -> String{
+pub fn name_to_hex<'a>(name: &str, color_name_standard: &'a ColorNameStandard) -> String {
     return color_name_standard.get_color(name);
 }
