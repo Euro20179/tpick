@@ -87,7 +87,7 @@ Currently there are no cli options.
 - [x] Specify starting value with cli option
   - [x] Read starting value from stdin
 - [x] Copy output
-- [ ] Convert any supported format to any other supported format via cli.
+- [x] Convert any supported format to any other supported format via cli.
 - [x] Pressing a key to input a color
 - [ ] Cli options for setting default Input/Selection/Output formats
 - [ ] Event system

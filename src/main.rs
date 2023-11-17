@@ -5,6 +5,7 @@ mod color_representation;
 mod keymaps;
 mod ui;
 
+use clap::Subcommand;
 use color_representation::*;
 use keymaps::Action;
 
@@ -311,7 +312,7 @@ impl SelectionType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum OutputType {
     HSL,
     RGB,
@@ -454,7 +455,7 @@ struct Args {
     color: Option<String>,
     #[arg(short, long)]
     print_on_exit: bool,
-    #[arg(short, long, help = "Enables use of --bg-clr and --fg-clr")]
+    #[arg(short = 'C', long, help = "Enables use of --bg-clr and --fg-clr")]
     custom_colors: bool,
     #[arg(short, long)]
     bg_clr: Option<String>,
@@ -467,6 +468,24 @@ struct Args {
         long_help = "The starting input type\ncan be one of: HSL, RGB, ANSI"
     )]
     input_type: Option<String>,
+    #[command(subcommand)]
+    convert: Option<ConvertSub>
+}
+
+#[derive(clap::Subcommand, Debug)]
+#[command(about = "Convert a color from one format to another")]
+enum ConvertSub {
+    Convert(ConvertArgs)
+}
+#[derive(Parser, Debug)]
+#[command(about = "Convert one color format to another")]
+struct ConvertArgs {
+    #[arg(short, help = "Enable alpha")]
+    alpha: bool,
+    #[arg(help = "Format type\nHSL\nRGB\nHEX\nCUSTOM")]
+    to: String,
+    #[arg(last(true), help = "Custom format for the CUSTOM format type")]
+    fmt: Option<String>,
 }
 
 fn main() {
@@ -491,6 +510,25 @@ fn main() {
         starting_clr = starting_clr.trim().to_string();
     }
 
+    let mut program_state = ProgramState {
+        selected_item: 0,
+        selection_type: requested_input_type,
+        output_type: OutputType::HSL,
+        enable_alpha: false,
+        curr_color: ColorRepresentation::from_color(starting_clr.as_str()),
+    };
+
+    if let Some(ConvertSub::Convert(conversion)) = args.convert{
+        println!("{}", match conversion.to.as_str() {
+            "HSL" => OutputType::HSL.render_output(&program_state.curr_color, conversion.alpha),
+            "RGB" => OutputType::RGB.render_output(&program_state.curr_color, conversion.alpha),
+            "HEX" => OutputType::HEX.render_output(&program_state.curr_color, conversion.alpha),
+            _ => OutputType::CUSTOM(conversion.fmt.unwrap_or("%xD".to_string())).render_output(&program_state.curr_color, conversion.alpha),
+        });
+        return;
+    }
+
+    let key_mappings = keymaps::init_keymaps();
     let tty = std::fs::File::open("/dev/tty").unwrap();
     let tty_fd = tty.as_raw_fd();
     unsafe { libc::dup2(tty_fd, 0) };
@@ -515,15 +553,6 @@ fn main() {
 
     let square_count = (361.0 / step).ceil() as u32;
 
-    let mut program_state = ProgramState {
-        selected_item: 0,
-        selection_type: requested_input_type,
-        output_type: OutputType::HSL,
-        enable_alpha: false,
-        curr_color: ColorRepresentation::from_color(starting_clr.as_str()),
-    };
-
-    let key_mappings = keymaps::init_keymaps();
 
     eprint!("\x1b[?1049h");
 
