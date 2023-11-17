@@ -1,5 +1,8 @@
 use std::fmt::Display;
+use std::fmt::LowerHex;
 use std::str::Split;
+
+use std::io::Write;
 
 use crate::OutputType;
 use crate::rgb2hsl;
@@ -179,31 +182,50 @@ impl ColorRepresentation {
     }
 
     pub fn tofmt(&self, fmt: &str) -> String {
+        enum FormatType {
+            String,
+            Hex
+        }
+        impl FormatType {
+            fn format<T: LowerHex + Display>(&self, val: T) -> String{
+                match self {
+                    Self::String => format!("{}", val),
+                    Self::Hex => format!("{:2x}", val)
+                }
+            }
+        }
+        //TODO: add some kind o FormatType::format(&u16) -> String to avoid code repetition as
+        //exampled by ch == "R", "G", "B"
         let mut result = String::new();
-        //TODO:
-        //the plan here is to copy each character from fmt to result and format any special
-        //characters as needed
+        //TODO: create custom formatter that allows for string padding and stuff
+        //also allow for converting b10 -> b16 so the user can get #RRGGBB output
         let mut is_fmt_char = false;
+        let mut fmt_char_type = FormatType::String;
         let (h, s, l) = self.hsl();
         for i in 0..fmt.len() {
             let ch = &fmt[i..i + 1];
             if ch == "%" {
+                fmt_char_type = FormatType::String;
                 is_fmt_char = true;
                 continue;
             }
             if is_fmt_char {
                 if ch == "R" {
-                    result += &(self.r as u8).to_string();
+                    result += &fmt_char_type.format(self.r as u8);
                 } else if ch == "G" {
-                    result += &(self.g as u8).to_string();
+                    result += &fmt_char_type.format(self.g as u8);
                 } else if ch == "B" {
-                    result += &(self.g as u8).to_string();
+                    result += &fmt_char_type.format(self.b as u8);
                 } else if ch == "H" {
-                    result += &h.to_string();
+                    result += &fmt_char_type.format(h as u8);
                 } else if ch == "S" {
-                    result += &s.to_string();
+                    result += &fmt_char_type.format(s as u8);
                 } else if ch == "L" {
-                    result += &l.to_string();
+                    result += &fmt_char_type.format(l as u8);
+                }
+                else if ch == "x" {
+                    fmt_char_type = FormatType::Hex;
+                    continue;
                 }
             } else {
                 result += ch;
