@@ -1,3 +1,5 @@
+use crate::read_ansi_color;
+
 pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
     s /= 100.0;
     l /= 100.0;
@@ -111,10 +113,11 @@ pub enum ColorNameStandard {
     X11,
     W3C,
     XTerm,
+    MyTerm,
 }
 
 impl ColorNameStandard {
-    fn get_color(&self, clr: &str) -> &str {
+    fn get_color(&self, clr: &str) -> String{
         match clr {
             "alice blue" => "#f0f8ff",
             "antique white" => "#faebd7",
@@ -123,10 +126,16 @@ impl ColorNameStandard {
             "azure" => "#f0ffff",
             "beige" => "#f5f5dc",
             "bisque" => "#ffe4c4",
-            "black" | "0" | "30" => "#000000",
+            "black" | "0" | "30" => {
+                let black = self.black();
+                return format!("#{:02x}{:02x}{:02x}", black[0], black[1], black[2]);
+            },
             "bright black" | "90" => "#4d4d4d", //xterm default for 90
             "blanched almond" => "#ffebcd",
-            "blue" | "4" | "34" => self.blue(),
+            "blue" | "4" | "34" => {
+                let blue = self.blue();
+                return format!("#{:02x}{:02x}{:02x}", blue[0], blue[1], blue[2]);
+            },
             "bright blue" | "94" => "#0000ff", //xterm default for 94
             "blue violet" => "#8a2be2",
             "brown" => "#a52a2a",
@@ -138,7 +147,10 @@ impl ColorNameStandard {
             "cornflower blue" => "#6495ed",
             "cornsilk" => "#fff8dc",
             "crimson" => "#dc143c",
-            "cyan" | "6" | "36" => self.cyan(),
+            "cyan" | "6" | "36" => {
+                let cyan = self.cyan();
+                return format!("#{:02x}{:02x}{:02x}", cyan[0], cyan[1], cyan[2]);
+            },
             "bright cyan" | "96" => "#00ffff", //xterm default for 96
             "dark blue" => "#00008b",
             "dark cyan" => "#008b8b",
@@ -171,7 +183,10 @@ impl ColorNameStandard {
             "goldenrod" => "#daa520",
             "gray" => self.gray(),
             "web gray" => "#808080",
-            "green" | "2" | "32" => self.green(),
+            "green" | "2" | "32" => {
+                let green = self.green();
+                return format!("#{:02x}{:02x}{:02x}", green[0], green[1], green[2]);
+            },
             "bright green" | "92" => "#00ff00", //xterm default for 92
             "web green" => "#008000",
             "green yellow" => "#adff2f",
@@ -201,7 +216,10 @@ impl ColorNameStandard {
             "lime" => "#00ff00",
             "lime green" => "#32cd32",
             "linen" => "#faf0e6",
-            "magenta" | "5" | "35" => self.magenta(),
+            "magenta" | "5" | "35" => {
+                let magenta = self.magenta();
+                return format!("#{:02x}{:02x}{:02x}", magenta[0], magenta[1], magenta[2]);
+            },
             "bright magenta" | "95" => "#ff00ff", //xterm default for 95
             "maroon" => self.maroon(),
             "web maroon" => "#800000",
@@ -239,7 +257,10 @@ impl ColorNameStandard {
             "purple" => self.purple(),
             "web purple" => "#800080",
             "rebecca purple" => "#663399",
-            "red" | "1" | "31" => self.red(),
+            "red" | "1" | "31" => {
+                let red = self.red();
+                return format!("#{:02x}{:02x}{:02x}", red[0], red[1], red[2]);
+            },
             "bright red" | "91" => "#ff0000", //xterm default for 91
             "rosy brown" => "#bc8f8f",
             "royal blue" => "#4169e1",
@@ -263,14 +284,20 @@ impl ColorNameStandard {
             "turquoise" => "#40e0d0",
             "violet" => "#ee82ee",
             "wheat" => "#f5deb3",
-            "white" | "7" | "37" => self.white(),
+            "white" | "7" | "37" => {
+                let white = self.white();
+                return format!("#{:02x}{:02x}{:02x}", white[0], white[1], white[2]);
+            },
             "bright white" | "97" => "#ffffff", //xterm default for 97
             "white smoke" => "#f5f5f5",
-            "yellow" | "3" | "33" => self.yellow(),
+            "yellow" | "3" | "33" => {
+                let yellow = self.yellow();
+                return format!("#{:02x}{:02x}{:02x}", yellow[0], yellow[1], yellow[2]);
+            },
             "bright yellow" | "93" => "#ffff00",
             "yellow green" => "#9acd32",
             _ => "#000000",
-        }
+        }.to_owned()
     }
 }
 
@@ -284,47 +311,84 @@ impl ColorNameStandard {
             _ => "#808080",
         }
     }
-    fn red(&self) -> &str {
+    fn black(&self) -> [u8; 3]{
         match self {
-            Self::XTerm => "#cd0000",
-            _ => "#ff0000"
+            Self::MyTerm => {
+                let mut reader = std::io::stdin();
+                read_ansi_color(&mut reader, 0)
+            },
+            _ => [0, 0, 0]
         }
     }
-    fn green(&self) -> &str {
+    fn red(&self) -> [u8; 3]{
         match self {
-            Self::X11 => "#00ff00",
-            Self::XTerm => "#00cd00",
-            _ => "#008000",
+            Self::XTerm => [0xcd, 0, 0],
+            Self::MyTerm => {
+                let mut reader = std::io::stdin();
+                read_ansi_color(&mut reader, 1)
+            }
+            _ => [0xff, 0, 0]
         }
     }
-    fn yellow(&self) -> &str {
+    fn green(&self) -> [u8; 3] {
         match self {
-            Self::XTerm => "#cdcd00",
-            _ => "#ffff00"
+            Self::X11 => [0x00, 0xff, 0x00],
+            Self::XTerm => [0, 0xcd, 0],
+            Self::MyTerm => {
+                let mut reader = std::io::stdin();
+                read_ansi_color(&mut reader, 2)
+            }
+            _ => [0, 0x80, 0],
         }
     }
-    fn blue(&self) -> &str {
+    fn yellow(&self) -> [u8; 3] {
         match self {
-            Self::XTerm => "#0000cd",
-            _ => "#0000ff"
+            Self::XTerm => [0xcd, 0xcd, 0x00],
+            Self::MyTerm => {
+                let mut reader = std::io::stdin();
+                read_ansi_color(&mut reader, 3)
+            }
+            _ => [0xff, 0xff, 0x00]
         }
     }
-    fn magenta(&self) -> &str {
+    fn blue(&self) -> [u8; 3]{
         match self {
-            Self::XTerm => "#cd00cd",
-            _ => "#ff00ff"
+            Self::XTerm => [0x00, 0x00, 0xcd],
+            Self::MyTerm => {
+                let mut reader = std::io::stdin();
+                read_ansi_color(&mut reader, 4)
+            }
+            _ => [0x00, 0x00, 0xff]
         }
     }
-    fn cyan(&self) -> &str {
+    fn magenta(&self) -> [u8; 3]{
         match self {
-            Self::XTerm => "#00cdcd",
-            _ => "#00ffff"
+            Self::XTerm => [0xcd, 0x00, 0xcd],
+            Self::MyTerm => {
+                let mut reader = std::io::stdin();
+                read_ansi_color(&mut reader, 5)
+            }
+            _ => [0xff, 0x00, 0xff]
         }
     }
-    fn white(&self) -> &str {
+    fn cyan(&self) -> [u8; 3]{
         match self {
-            Self::XTerm => "#e5e5e5",
-            _ => "#ffffff"
+            Self::XTerm => [0x00, 0xcd, 0xcd],
+            Self::MyTerm => {
+                let mut reader = std::io::stdin();
+                read_ansi_color(&mut reader, 6)
+            }
+            _ => [0x00, 0xff, 0xff]
+        }
+    }
+    fn white(&self) -> [u8; 3]{
+        match self {
+            Self::XTerm => [0xe5, 0xe5, 0xe5],
+            Self::MyTerm => {
+                let mut reader = std::io::stdin();
+                read_ansi_color(&mut reader, 7)
+            }
+            _ => [0xff, 0xff, 0xff]
         }
     }
     fn maroon(&self) -> &str {
@@ -341,6 +405,6 @@ impl ColorNameStandard {
     }
 }
 
-pub fn name_to_hex<'a>(name: &str, color_name_standard: &'a ColorNameStandard) -> &'a str {
+pub fn name_to_hex<'a>(name: &str, color_name_standard: &'a ColorNameStandard) -> String{
     return color_name_standard.get_color(name);
 }

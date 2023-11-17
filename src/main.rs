@@ -362,7 +362,7 @@ fn read_osc_response(reader: &mut std::io::Stdin) -> String {
     return result_str;
 }
 
-fn read_ansi_color(reader: &mut std::io::Stdin, clr_num: u8) -> String {
+fn read_ansi_color(reader: &mut std::io::Stdin, clr_num: u8) -> [u8; 3] {
     eprintln!("\x1b]4;{};?\x07", clr_num);
     let clr_buf = read_osc_response(reader);
     //parses out garbage, gives us rr/gg/bb
@@ -378,13 +378,18 @@ fn read_ansi_color(reader: &mut std::io::Stdin, clr_num: u8) -> String {
     let r = &hexes.next().unwrap()[0..2];
     let g = &hexes.next().unwrap()[0..2];
     let b = &hexes.next().unwrap()[0..2];
-    return format!("#{}{}{}", r, g, b);
+    [
+        u8::from_str_radix(r, 16).unwrap_or(0),
+        u8::from_str_radix(g, 16).unwrap_or(0),
+        u8::from_str_radix(b, 16).unwrap_or(0),
+    ]
 }
 
 fn get_ansi_30_and_90(reader: &mut std::io::Stdin) -> Vec<String> {
     let mut data = Vec::with_capacity(16);
     for i in 0..16 {
-        data.push(read_ansi_color(reader, i));
+        let clr = read_ansi_color(reader, i);
+        data.push(format!("#{}{}{}", clr[0], clr[1], clr[2]));
     }
     return data;
 }
@@ -426,6 +431,9 @@ fn read_clipboard(reader: &mut std::io::Stdin) -> String {
 
 //returns oldtermios, newtermios
 fn setup_term() -> (termios::Termios, termios::Termios) {
+    let tty = std::fs::File::open("/dev/tty").unwrap();
+    let tty_fd = tty.as_raw_fd();
+    unsafe { libc::dup2(tty_fd, 0) };
     let mut tios = Termios::from_fd(0).unwrap();
     let mut tios_initial = Termios::from_fd(0).unwrap();
     let _ = termios::tcgetattr(0, &mut tios);
@@ -512,12 +520,9 @@ fn convert(conversion: ConvertArgs, curr_color: &ColorRepresentation) {
     println!(
         "{}",
         match conversion.to {
-            RequestedOutputType::HSL =>
-                OutputType::HSL.render_output(curr_color, conversion.alpha),
-            RequestedOutputType::RGB =>
-                OutputType::RGB.render_output(curr_color, conversion.alpha),
-            RequestedOutputType::HEX =>
-                OutputType::HEX.render_output(curr_color, conversion.alpha),
+            RequestedOutputType::HSL => OutputType::HSL.render_output(curr_color, conversion.alpha),
+            RequestedOutputType::RGB => OutputType::RGB.render_output(curr_color, conversion.alpha),
+            RequestedOutputType::HEX => OutputType::HEX.render_output(curr_color, conversion.alpha),
             _ => OutputType::CUSTOM(conversion.fmt.unwrap_or("%xD".to_string()))
                 .render_output(curr_color, conversion.alpha),
         }
@@ -561,6 +566,8 @@ fn main() {
         }
     };
 
+    let (tios_initial, _tios) = setup_term();
+
     let mut program_state = ProgramState {
         selected_item: 0,
         selection_type: requested_input_type,
@@ -571,15 +578,11 @@ fn main() {
 
     if let Some(ConvertSub::Convert(conversion)) = args.convert {
         convert(conversion, &program_state.curr_color);
+        termios::tcsetattr(0, termios::TCSANOW, &tios_initial).unwrap();
         return;
     }
 
     let key_mappings = keymaps::init_keymaps();
-    let tty = std::fs::File::open("/dev/tty").unwrap();
-    let tty_fd = tty.as_raw_fd();
-    unsafe { libc::dup2(tty_fd, 0) };
-
-    let (tios_initial, _tios) = setup_term();
 
     let mut wsz = libc::winsize {
         ws_row: 0,
