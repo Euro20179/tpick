@@ -4,9 +4,13 @@ mod color_conversions;
 mod color_representation;
 mod keymaps;
 mod ui;
+mod cli;
 
 use color_representation::*;
 use keymaps::Action;
+use cli::*;
+use termios::Termios;
+use clap::Parser;
 
 use std::fmt::Display;
 use std::io::Read;
@@ -14,9 +18,6 @@ use std::os::fd::AsRawFd;
 
 use base64::engine::general_purpose;
 use base64::prelude::*;
-use clap::ColorChoice;
-use clap::Parser;
-use termios::Termios;
 
 use color_conversions::*;
 
@@ -217,7 +218,6 @@ struct ProgramState {
     clr_std: ColorNameStandard,
 }
 
-//TODO: remove u8 requirement, keep track of that with ProgramState.selected_item
 #[derive(Copy, Clone, PartialEq, clap::ValueEnum, Debug)]
 enum SelectionType {
     HSL,
@@ -455,71 +455,6 @@ fn get_input(reader: &mut std::io::Stdin) -> String {
     let bytes_read = reader.read(&mut buf).unwrap();
 
     String::from_utf8(buf[0..bytes_read].to_vec()).unwrap()
-}
-
-#[derive(Debug, PartialEq, Clone, clap::ValueEnum)]
-enum RequestedOutputType {
-    HSL,
-    RGB,
-    HEX,
-    CUSTOM,
-}
-
-#[derive(Parser, Debug)]
-#[command(color = ColorChoice::Auto, long_about = "A color picker")]
-struct Args {
-    color: Option<String>,
-    #[arg(short, long)]
-    print_on_exit: bool,
-    #[arg(short, long)]
-    list_colors: bool,
-    #[arg(
-        short,
-        long,
-        help = "Color naming standard",
-        long_help = "Color naming standard\nx11: Colors used in the X11 display server\nw3c: Colors standardized for the web\nThis is used to resolve conflicting names such as 'green'\nsee \x1b[34m\x1b]8;;https://en.wikipedia.org/wiki/X11_color_names#Clashes_between_web_and_X11_colors_in_the_CSS_color_scheme\x1b\\this wikipedia article\x1b]8;;\x07\x1b[0m for more information"
-    )]
-    clr_standard: Option<ColorNameStandard>,
-    #[arg(short = 'C', long, help = "Enables use of --bg-clr and --fg-clr")]
-    custom_colors: bool,
-    #[arg(short, long)]
-    bg_clr: Option<String>,
-    #[arg(short, long)]
-    fg_clr: Option<String>,
-    #[arg(
-        short,
-        long,
-        help = "The starting input type",
-        long_help = "The starting input type"
-    )]
-    input_type: Option<SelectionType>,
-    #[arg(short, long, help = "The output format type")]
-    output_type: Option<RequestedOutputType>,
-    #[arg(
-        short = 'F',
-        long = "of",
-        help = "Custom format for the CUSTOM format type"
-    )]
-    output_fmt: Option<String>,
-    #[command(subcommand)]
-    convert: Option<ConvertSub>,
-}
-
-#[derive(clap::Subcommand, Debug)]
-#[command(about = "Convert a color from one format to another")]
-enum ConvertSub {
-    Convert(ConvertArgs),
-}
-
-#[derive(Parser, Debug)]
-#[command(about = "Convert one color format to another")]
-struct ConvertArgs {
-    #[arg(short, help = "Enable alpha")]
-    alpha: bool,
-    #[arg(help = "Format type")]
-    to: RequestedOutputType,
-    #[arg(help = "Custom format for the CUSTOM format type")]
-    fmt: Option<String>,
 }
 
 fn convert(conversion: ConvertArgs, curr_color: &ColorRepresentation) {

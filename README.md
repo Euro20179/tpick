@@ -106,6 +106,7 @@ Currently there are no cli options.
 ## Maybe goals
 
 - [ ] Saving colors
+- [ ] Using the kitty keyboard input standard
 
 ## Non Goals
 
