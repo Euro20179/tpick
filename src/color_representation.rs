@@ -11,6 +11,7 @@ use crate::hsl2rgb;
 use crate::rgb2hsl;
 use crate::OutputType;
 
+#[macro_export]
 macro_rules! hashmap {
     (@single $($x:tt)*) => (());
     (@count $($rest:expr),*) => (<[()]>::len(&[$(hashmap!(@single $rest)),*]));

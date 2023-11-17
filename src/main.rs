@@ -5,7 +5,6 @@ mod color_representation;
 mod keymaps;
 mod ui;
 
-use clap::Subcommand;
 use color_representation::*;
 use keymaps::Action;
 
