@@ -453,6 +453,14 @@ fn get_input(reader: &mut std::io::Stdin) -> String {
     String::from_utf8(buf[0..bytes_read].to_vec()).unwrap()
 }
 
+#[derive(Debug, PartialEq, Clone, clap::ValueEnum)]
+enum RequestedOutputType {
+    HSL,
+    RGB,
+    HEX,
+    CUSTOM
+}
+
 #[derive(Parser, Debug)]
 #[command(color = ColorChoice::Auto, long_about = "A color picker")]
 struct Args {
@@ -488,14 +496,15 @@ struct Args {
 enum ConvertSub {
     Convert(ConvertArgs),
 }
+
 #[derive(Parser, Debug)]
 #[command(about = "Convert one color format to another")]
 struct ConvertArgs {
     #[arg(short, help = "Enable alpha")]
     alpha: bool,
-    #[arg(help = "Format type\nHSL\nRGB\nHEX\nCUSTOM")]
-    to: String,
-    #[arg(last(true), help = "Custom format for the CUSTOM format type")]
+    #[arg(help = "Format type")]
+    to: RequestedOutputType,
+    #[arg(help = "Custom format for the CUSTOM format type")]
     fmt: Option<String>,
 }
 
@@ -538,10 +547,10 @@ fn main() {
     if let Some(ConvertSub::Convert(conversion)) = args.convert {
         println!(
             "{}",
-            match conversion.to.as_str() {
-                "HSL" => OutputType::HSL.render_output(&program_state.curr_color, conversion.alpha),
-                "RGB" => OutputType::RGB.render_output(&program_state.curr_color, conversion.alpha),
-                "HEX" => OutputType::HEX.render_output(&program_state.curr_color, conversion.alpha),
+            match conversion.to {
+                RequestedOutputType::HSL => OutputType::HSL.render_output(&program_state.curr_color, conversion.alpha),
+                RequestedOutputType::RGB => OutputType::RGB.render_output(&program_state.curr_color, conversion.alpha),
+                RequestedOutputType::HEX => OutputType::HEX.render_output(&program_state.curr_color, conversion.alpha),
                 _ => OutputType::CUSTOM(conversion.fmt.unwrap_or("%xD".to_string()))
                     .render_output(&program_state.curr_color, conversion.alpha),
             }
