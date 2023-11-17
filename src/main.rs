@@ -550,7 +550,7 @@ fn main() {
         / (wsz.ws_col - 1/*the minus 1 is because we need to leave space for the label*/) as f32)
         .ceil();
 
-    let square_count = (361.0 / step).ceil() as u32;
+    let square_count = (360.0 / step).ceil() as u32;
 
     eprint!("\x1b[?1049h");
 
