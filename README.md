@@ -85,7 +85,8 @@ Currently there are no cli options.
   - [x] Let user pick from some kind of menu instead of cycling (or both)
   - [x] Option to display all outputs at once
   - [x] Custom output formats
-  - [ ] Show multiple different custom output formats
+  - [x] <del>Show multiple different custom output formats</del>
+    - This is unecessary as different formats can be seperated with %n (a new line)
 - [x] Specify starting value with cli option
   - [x] Read starting value from stdin
 - [x] Copy output

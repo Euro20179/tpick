@@ -576,7 +576,7 @@ fn main() {
 
     if args.list_colors {
         for (k, v) in clr_std.list_colors() {
-            println!("{}: #{}", k, ColorRepresentation::from_color(&format!("{};{};{}", v[0], v[1], v[2]), &clr_std))
+            println!("{}: {}", k, output_type.render_output(&ColorRepresentation::from_color(&format!("{};{};{}", v[0], v[1], v[2]), &clr_std), true))
         }
         close_term(&tios_initial);
         return;
