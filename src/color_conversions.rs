@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use lazy_static::lazy_static;
+
 use crate::{hashmap, read_ansi_color};
 
 pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
@@ -330,13 +332,13 @@ impl ColorNameStandard {
     fn red(&self) -> [u8; 3] {
         match self {
             Self::XTerm => [0xcd, 0, 0],
-            Self::MyTerm =>get_ansi_clr_num_with_reader(1),
+            Self::MyTerm => get_ansi_clr_num_with_reader(1),
             _ => [0xff, 0, 0],
         }
     }
     fn bright_red(&self) -> [u8; 3] {
         match self {
-            Self::MyTerm =>get_ansi_clr_num_with_reader(9),
+            Self::MyTerm => get_ansi_clr_num_with_reader(9),
             _ => [0xff, 0, 0],
         }
     }
@@ -344,79 +346,79 @@ impl ColorNameStandard {
         match self {
             Self::X11 => [0x00, 0xff, 0x00],
             Self::XTerm => [0, 0xcd, 0],
-            Self::MyTerm =>get_ansi_clr_num_with_reader(2),
+            Self::MyTerm => get_ansi_clr_num_with_reader(2),
             _ => [0, 0x80, 0],
         }
     }
     fn bright_green(&self) -> [u8; 3] {
         match self {
-            Self::MyTerm =>get_ansi_clr_num_with_reader(0xA),
+            Self::MyTerm => get_ansi_clr_num_with_reader(0xA),
             _ => [0x00, 0xff, 0x00],
         }
     }
     fn yellow(&self) -> [u8; 3] {
         match self {
             Self::XTerm => [0xcd, 0xcd, 0x00],
-            Self::MyTerm =>get_ansi_clr_num_with_reader(3),
+            Self::MyTerm => get_ansi_clr_num_with_reader(3),
             _ => [0xff, 0xff, 0x00],
         }
     }
     fn blue(&self) -> [u8; 3] {
         match self {
             Self::XTerm => [0x00, 0x00, 0xcd],
-            Self::MyTerm =>get_ansi_clr_num_with_reader(4),
+            Self::MyTerm => get_ansi_clr_num_with_reader(4),
             _ => [0x00, 0x00, 0xff],
         }
     }
-    fn bright_blue(&self) -> [u8; 3]{
+    fn bright_blue(&self) -> [u8; 3] {
         match self {
             Self::MyTerm => get_ansi_clr_num_with_reader(0xC),
-            _ => [0x00, 0x00, 0xff]
+            _ => [0x00, 0x00, 0xff],
         }
     }
     fn magenta(&self) -> [u8; 3] {
         match self {
             Self::XTerm => [0xcd, 0x00, 0xcd],
-            Self::MyTerm =>get_ansi_clr_num_with_reader(5),
+            Self::MyTerm => get_ansi_clr_num_with_reader(5),
             _ => [0xff, 0x00, 0xff],
         }
     }
-    fn bright_magenta(&self) -> [u8; 3]{
+    fn bright_magenta(&self) -> [u8; 3] {
         match self {
             Self::MyTerm => get_ansi_clr_num_with_reader(0xD),
-            _ => [0xff, 0x00, 0xff]
+            _ => [0xff, 0x00, 0xff],
         }
     }
     fn cyan(&self) -> [u8; 3] {
         match self {
             Self::XTerm => [0x00, 0xcd, 0xcd],
-            Self::MyTerm =>get_ansi_clr_num_with_reader(6),
+            Self::MyTerm => get_ansi_clr_num_with_reader(6),
             _ => [0x00, 0xff, 0xff],
         }
     }
-    fn bright_cyan(&self) -> [u8; 3]{
+    fn bright_cyan(&self) -> [u8; 3] {
         match self {
             Self::MyTerm => get_ansi_clr_num_with_reader(0xE),
-            _ => [0x00, 0xff, 0xff]
+            _ => [0x00, 0xff, 0xff],
         }
     }
     fn white(&self) -> [u8; 3] {
         match self {
             Self::XTerm => [0xe5, 0xe5, 0xe5],
-            Self::MyTerm =>get_ansi_clr_num_with_reader(7),
+            Self::MyTerm => get_ansi_clr_num_with_reader(7),
             _ => [0xff, 0xff, 0xff],
         }
     }
-    fn bright_white(&self) -> [u8; 3]{
+    fn bright_white(&self) -> [u8; 3] {
         match self {
             Self::MyTerm => get_ansi_clr_num_with_reader(0xf),
-            _ => [0xff, 0xff, 0xff]
+            _ => [0xff, 0xff, 0xff],
         }
     }
-    fn bright_yellow(&self) -> [u8; 3]{
+    fn bright_yellow(&self) -> [u8; 3] {
         match self {
             Self::MyTerm => get_ansi_clr_num_with_reader(0xB),
-            _ => [0xff, 0xff, 0x00]
+            _ => [0xff, 0xff, 0x00],
         }
     }
     fn maroon(&self) -> &str {
