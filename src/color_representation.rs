@@ -212,7 +212,7 @@ impl ColorRepresentation {
             fn format<T: LowerHex + Display>(&self, val: T) -> String {
                 match self {
                     Self::String => format!("{}", val),
-                    Self::Hex => format!("{:2x}", val),
+                    Self::Hex => format!("{:02x}", val),
                 }
             }
         }
