@@ -18,6 +18,11 @@ pub fn init_keymaps(
 
     key_maps.insert("q".to_owned(), |_program_state, _key| Some(Action::Break));
 
+    key_maps.insert("\x0A".to_owned(), |program_state, _key|{
+        paste_to_clipboard(&program_state.output_type.render_output(&program_state.curr_color, program_state.enable_alpha));
+        Some(Action::Break)
+    });
+
     key_maps.insert("$".to_owned(), |program_state, _key| {
         let max_values = program_state.selection_type.max_values();
         let sel_type = program_state.selection_type;

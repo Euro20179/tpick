@@ -16,23 +16,25 @@ Currently there are no cli options.
 
 ## Controls
 
-| Control | action                                                   |
-| ------- | -------------------------------------------------------- |
-| l       | increase current value                                   |
-| L       | increase current value by 10                             |
-| h       | decrease current value                                   |
-| H       | decrease current value by 10                             |
-| 0-9     | set current value to 0%-90%                              |
-| $       | set current value to 100%                                |
-| o       | cycle output format                                      |
-| O       | Various output format options                            |
-| i       | cycle input format                                       |
-| I       | Input a number for the selected slider                   |
-| y       | copy output                                              |
-| Y       | copy ONLY the output value with no extra formatting      |
-| p       | Paste color from clipboard (can be any supported format) |
-| a       | Enable/disable alpha channel                             |
-| n       | Input a new color                                        |
+| Control    | action                                                   |
+| ---------- | -------------------------------------------------------- |
+| l          | increase current value                                   |
+| L          | increase current value by 10                             |
+| h          | decrease current value                                   |
+| H          | decrease current value by 10                             |
+| 0-9        | set current value to 0%-90%                              |
+| $          | set current value to 100%                                |
+| o          | cycle output format                                      |
+| O          | Various output format options                            |
+| i          | cycle input format                                       |
+| I          | Input a number for the selected slider                   |
+| y          | copy output                                              |
+| Y          | copy ONLY the output value with no extra formatting      |
+| p          | Paste color from clipboard (can be any supported format) |
+| a          | Enable/disable alpha channel                             |
+| n          | Input a new color                                        |
+| q          | quit                                                     |
+| &lt;CR&gt; | quit and copy to clipboard                               |
 
 ## Variables
 
