@@ -4,9 +4,26 @@ use std::str::Split;
 
 use std::io::Write;
 
-use crate::OutputType;
-use crate::rgb2hsl;
 use crate::hsl2rgb;
+use crate::rgb2hsl;
+use crate::OutputType;
+
+macro_rules! hashmap {
+    (@single $($x:tt)*) => (());
+    (@count $($rest:expr),*) => (<[()]>::len(&[$(hashmap!(@single $rest)),*]));
+
+    ($($key:expr => $value:expr,)+) => {hashmap!($($key => $value),+)};
+    ($($key:expr => $value:expr),*) => {
+        {
+            let _cap = hashmap!(@count $($key),*);
+            let mut _map = ::std::collections::HashMap::with_capacity(_cap);
+            $(
+                let _ = _map.insert($key, $value);
+            )*
+            _map
+        }
+    }
+}
 
 #[derive(Clone, Copy)]
 pub struct ColorRepresentation {
@@ -99,7 +116,7 @@ impl ColorRepresentation {
     pub fn add_hsla(&mut self, hsla: [f32; 4]) {
         let (h, s, l) = self.hsl();
         self.modify_hsl((h + hsla[0], s + hsla[1], l + hsla[2]));
-        self.modify_a(self.a as i32  + hsla[3] as i32);
+        self.modify_a(self.a as i32 + hsla[3] as i32);
     }
 
     pub fn hsl(&self) -> (f32, f32, f32) {
@@ -184,24 +201,23 @@ impl ColorRepresentation {
     pub fn tofmt(&self, fmt: &str) -> String {
         enum FormatType {
             String,
-            Hex
+            Hex,
         }
         impl FormatType {
-            fn format<T: LowerHex + Display>(&self, val: T) -> String{
+            fn format<T: LowerHex + Display>(&self, val: T) -> String {
                 match self {
                     Self::String => format!("{}", val),
-                    Self::Hex => format!("{:2x}", val)
+                    Self::Hex => format!("{:2x}", val),
                 }
             }
         }
-        //TODO: add some kind o FormatType::format(&u16) -> String to avoid code repetition as
-        //exampled by ch == "R", "G", "B"
+        let (h, s, l) = self.hsl();
+        let ch_to_value = hashmap! {
+            "R" => self.r, "G" => self.g, "B" => self.b, "H" => h, "S" => s, "L" => l, "A" => self.a as f32
+        };
         let mut result = String::new();
-        //TODO: create custom formatter that allows for string padding and stuff
-        //also allow for converting b10 -> b16 so the user can get #RRGGBB output
         let mut is_fmt_char = false;
         let mut fmt_char_type = FormatType::String;
-        let (h, s, l) = self.hsl();
         for i in 0..fmt.len() {
             let ch = &fmt[i..i + 1];
             if ch == "%" {
@@ -210,20 +226,9 @@ impl ColorRepresentation {
                 continue;
             }
             if is_fmt_char {
-                if ch == "R" {
-                    result += &fmt_char_type.format(self.r as u8);
-                } else if ch == "G" {
-                    result += &fmt_char_type.format(self.g as u8);
-                } else if ch == "B" {
-                    result += &fmt_char_type.format(self.b as u8);
-                } else if ch == "H" {
-                    result += &fmt_char_type.format(h as u8);
-                } else if ch == "S" {
-                    result += &fmt_char_type.format(s as u8);
-                } else if ch == "L" {
-                    result += &fmt_char_type.format(l as u8);
-                }
-                else if ch == "x" {
+                if let Some(v) = ch_to_value.get(ch) {
+                    result += &fmt_char_type.format(*v as u8);
+                } else if ch == "x" {
                     fmt_char_type = FormatType::Hex;
                     continue;
                 }
