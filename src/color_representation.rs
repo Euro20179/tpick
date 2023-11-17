@@ -4,9 +4,9 @@ use std::str::Split;
 
 use std::io::Write;
 
-use crate::color_conversions::ColorNameStandard;
 use crate::color_conversions::hex62rgb;
 use crate::color_conversions::name_to_hex;
+use crate::color_conversions::ColorNameStandard;
 use crate::hsl2rgb;
 use crate::rgb2hsl;
 use crate::OutputType;
@@ -107,8 +107,7 @@ impl ColorRepresentation {
                     (r, g, b) = (0.0, 0.0, 0.0);
                 }
             }
-        }
-        else {
+        } else {
             let (r8, g8, b8) = hex62rgb(&name_to_hex(clr, clr_name_standard)[1..]);
             (r, g, b) = (r8 as f32, g8 as f32, b8 as f32);
         }

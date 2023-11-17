@@ -78,8 +78,10 @@ fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rg
     let label = ['R', 'G', 'B'][rgb_idx];
     eprint!("{}", label);
     //create the starting color based on the list of colors
-    let mut color =
-        ColorRepresentation::from_color(&format!("rgb({},{},{})", colors[0], colors[1], colors[2]), &ColorNameStandard::W3C);
+    let mut color = ColorRepresentation::from_color(
+        &format!("rgb({},{},{})", colors[0], colors[1], colors[2]),
+        &ColorNameStandard::W3C,
+    );
     for i in 0..square_count {
         //print a square with the correct color
         eprint!("\x1b[38;2;{}m█", color.toansi(false));
@@ -114,8 +116,10 @@ fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hs
     let label = ['H', 'S', 'L'][hsl_idx];
     let modifier_multiplier = [360.0, 100.0, 100.0][hsl_idx];
     eprint!("{}", label);
-    let mut color =
-        ColorRepresentation::from_color(&format!("hsl({},{},{})", colors[0], colors[1], colors[2]), &ColorNameStandard::W3C);
+    let mut color = ColorRepresentation::from_color(
+        &format!("hsl({},{},{})", colors[0], colors[1], colors[2]),
+        &ColorNameStandard::W3C,
+    );
     for i in 0..square_count {
         eprint!("\x1b[38;2;{}m█", color.toansi(false));
         colors[modifier_idx] = (i as f32 / square_count as f32) * modifier_multiplier;
@@ -455,7 +459,12 @@ struct Args {
     color: Option<String>,
     #[arg(short, long)]
     print_on_exit: bool,
-    #[arg(short, long, help = "Color naming standard", long_help = "Color naming standard\nx11: Colors used in the X11 display server\nw3c: Colors standardized for the web\nThis is used to resolve conflicting names such as 'green'\nsee \x1b[34m\x1b]8;;https://en.wikipedia.org/wiki/X11_color_names#Clashes_between_web_and_X11_colors_in_the_CSS_color_scheme\x1b\\this wikipedia article\x1b]8;;\x07\x1b[0m for more information")]
+    #[arg(
+        short,
+        long,
+        help = "Color naming standard",
+        long_help = "Color naming standard\nx11: Colors used in the X11 display server\nw3c: Colors standardized for the web\nThis is used to resolve conflicting names such as 'green'\nsee \x1b[34m\x1b]8;;https://en.wikipedia.org/wiki/X11_color_names#Clashes_between_web_and_X11_colors_in_the_CSS_color_scheme\x1b\\this wikipedia article\x1b]8;;\x07\x1b[0m for more information"
+    )]
     clr_standard: Option<ColorNameStandard>,
     #[arg(short = 'C', long, help = "Enables use of --bg-clr and --fg-clr")]
     custom_colors: bool,
@@ -471,13 +480,13 @@ struct Args {
     )]
     input_type: Option<SelectionType>,
     #[command(subcommand)]
-    convert: Option<ConvertSub>
+    convert: Option<ConvertSub>,
 }
 
 #[derive(clap::Subcommand, Debug)]
 #[command(about = "Convert a color from one format to another")]
 enum ConvertSub {
-    Convert(ConvertArgs)
+    Convert(ConvertArgs),
 }
 #[derive(Parser, Debug)]
 #[command(about = "Convert one color format to another")]
@@ -495,10 +504,16 @@ fn main() {
 
     let mut starting_clr = args.color.unwrap_or("#ff0000".to_string());
 
-    let requested_bg_color =
-        ColorRepresentation::from_color(&args.bg_clr.unwrap_or("#000000".to_string()), &ColorNameStandard::W3C).tohex(false);
-    let requested_fg_color =
-        ColorRepresentation::from_color(&args.fg_clr.unwrap_or("#ffffff".to_string()), &ColorNameStandard::W3C).tohex(false);
+    let requested_bg_color = ColorRepresentation::from_color(
+        &args.bg_clr.unwrap_or("#000000".to_string()),
+        &ColorNameStandard::W3C,
+    )
+    .tohex(false);
+    let requested_fg_color = ColorRepresentation::from_color(
+        &args.fg_clr.unwrap_or("#ffffff".to_string()),
+        &ColorNameStandard::W3C,
+    )
+    .tohex(false);
     let use_custom_colors = args.custom_colors;
 
     let requested_input_type = args.input_type.unwrap_or(SelectionType::HSL);
@@ -520,13 +535,17 @@ fn main() {
         curr_color: ColorRepresentation::from_color(starting_clr.as_str(), &clr_std),
     };
 
-    if let Some(ConvertSub::Convert(conversion)) = args.convert{
-        println!("{}", match conversion.to.as_str() {
-            "HSL" => OutputType::HSL.render_output(&program_state.curr_color, conversion.alpha),
-            "RGB" => OutputType::RGB.render_output(&program_state.curr_color, conversion.alpha),
-            "HEX" => OutputType::HEX.render_output(&program_state.curr_color, conversion.alpha),
-            _ => OutputType::CUSTOM(conversion.fmt.unwrap_or("%xD".to_string())).render_output(&program_state.curr_color, conversion.alpha),
-        });
+    if let Some(ConvertSub::Convert(conversion)) = args.convert {
+        println!(
+            "{}",
+            match conversion.to.as_str() {
+                "HSL" => OutputType::HSL.render_output(&program_state.curr_color, conversion.alpha),
+                "RGB" => OutputType::RGB.render_output(&program_state.curr_color, conversion.alpha),
+                "HEX" => OutputType::HEX.render_output(&program_state.curr_color, conversion.alpha),
+                _ => OutputType::CUSTOM(conversion.fmt.unwrap_or("%xD".to_string()))
+                    .render_output(&program_state.curr_color, conversion.alpha),
+            }
+        );
         return;
     }
 
@@ -554,7 +573,6 @@ fn main() {
         .ceil();
 
     let square_count = (361.0 / step).ceil() as u32;
-
 
     eprint!("\x1b[?1049h");
 
