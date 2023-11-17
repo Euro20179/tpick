@@ -1,7 +1,3 @@
-use std::collections::HashMap;
-
-use crate::hashmap;
-
 pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
     s /= 100.0;
     l /= 100.0;
@@ -267,7 +263,6 @@ impl ColorNameStandard {
                 "yellow green" => "#9acd32",
                 _ => "#000000",
             },
-            _ => "",
         }
     }
 }

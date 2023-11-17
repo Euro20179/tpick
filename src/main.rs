@@ -225,13 +225,6 @@ enum SelectionType {
 }
 
 impl SelectionType {
-    fn from_string(name: &str) -> SelectionType {
-        match name.to_lowercase().as_str() {
-            "rgb" => SelectionType::RGB,
-            "ansi" => SelectionType::ANSI256,
-            _ => SelectionType::HSL,
-        }
-    }
     fn label_from_selected_item(&self, selected_item: u8) -> char {
         match self {
             SelectionType::HSL => ['H', 'S', 'L', 'A'][selected_item as usize],

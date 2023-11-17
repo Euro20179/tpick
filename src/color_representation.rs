@@ -2,8 +2,6 @@ use std::fmt::Display;
 use std::fmt::LowerHex;
 use std::str::Split;
 
-use std::io::Write;
-
 use crate::color_conversions::hex62rgb;
 use crate::color_conversions::name_to_hex;
 use crate::color_conversions::ColorNameStandard;
@@ -39,9 +37,9 @@ pub struct ColorRepresentation {
 
 impl ColorRepresentation {
     pub fn from_color(clr: &str, clr_name_standard: &ColorNameStandard) -> ColorRepresentation {
-        let mut r: f32 = 0.0;
-        let mut g: f32 = 0.0;
-        let mut b: f32 = 0.0;
+        let r: f32;
+        let g: f32;
+        let b: f32;
         let mut a = 255;
 
         let get_next = |split: &mut Split<'_, &str>| split.next().unwrap().trim().parse().unwrap();

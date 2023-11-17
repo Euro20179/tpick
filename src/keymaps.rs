@@ -1,5 +1,3 @@
-use clap::builder::styling::Color;
-
 use crate::cls;
 use crate::color_conversions::ColorNameStandard;
 use crate::ui;
