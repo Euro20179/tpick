@@ -457,7 +457,7 @@ enum RequestedOutputType {
     HSL,
     RGB,
     HEX,
-    CUSTOM
+    CUSTOM,
 }
 
 #[derive(Parser, Debug)]
@@ -488,7 +488,11 @@ struct Args {
     input_type: Option<SelectionType>,
     #[arg(short, long, help = "The output format type")]
     output_type: Option<RequestedOutputType>,
-    #[arg(short = 'F', long = "of", help = "Custom format for the CUSTOM format type")]
+    #[arg(
+        short = 'F',
+        long = "of",
+        help = "Custom format for the CUSTOM format type"
+    )]
     output_fmt: Option<String>,
     #[command(subcommand)]
     convert: Option<ConvertSub>,
@@ -509,6 +513,22 @@ struct ConvertArgs {
     to: RequestedOutputType,
     #[arg(help = "Custom format for the CUSTOM format type")]
     fmt: Option<String>,
+}
+
+fn convert(conversion: ConvertArgs, curr_color: &ColorRepresentation) {
+    println!(
+        "{}",
+        match conversion.to {
+            RequestedOutputType::HSL =>
+                OutputType::HSL.render_output(curr_color, conversion.alpha),
+            RequestedOutputType::RGB =>
+                OutputType::RGB.render_output(curr_color, conversion.alpha),
+            RequestedOutputType::HEX =>
+                OutputType::HEX.render_output(curr_color, conversion.alpha),
+            _ => OutputType::CUSTOM(conversion.fmt.unwrap_or("%xD".to_string()))
+                .render_output(curr_color, conversion.alpha),
+        }
+    );
 }
 
 fn main() {
@@ -539,11 +559,13 @@ fn main() {
     }
     let clr_std = args.clr_standard.unwrap_or(ColorNameStandard::W3C);
 
-    let output_type = match args.output_type.unwrap_or(RequestedOutputType::HSL){
+    let output_type = match args.output_type.unwrap_or(RequestedOutputType::HSL) {
         RequestedOutputType::HSL => OutputType::HSL,
         RequestedOutputType::RGB => OutputType::RGB,
         RequestedOutputType::HEX => OutputType::HEX,
-        RequestedOutputType::CUSTOM => OutputType::CUSTOM(args.output_fmt.unwrap_or("%xD".to_string()))
+        RequestedOutputType::CUSTOM => {
+            OutputType::CUSTOM(args.output_fmt.unwrap_or("%xD".to_string()))
+        }
     };
 
     let mut program_state = ProgramState {
@@ -555,16 +577,7 @@ fn main() {
     };
 
     if let Some(ConvertSub::Convert(conversion)) = args.convert {
-        println!(
-            "{}",
-            match conversion.to {
-                RequestedOutputType::HSL => OutputType::HSL.render_output(&program_state.curr_color, conversion.alpha),
-                RequestedOutputType::RGB => OutputType::RGB.render_output(&program_state.curr_color, conversion.alpha),
-                RequestedOutputType::HEX => OutputType::HEX.render_output(&program_state.curr_color, conversion.alpha),
-                _ => OutputType::CUSTOM(conversion.fmt.unwrap_or("%xD".to_string()))
-                    .render_output(&program_state.curr_color, conversion.alpha),
-            }
-        );
+        convert(conversion, &program_state.curr_color);
         return;
     }
 
