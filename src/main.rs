@@ -562,6 +562,8 @@ fn main() {
 
         let square_count = (360.0 / step).ceil() as u32;
         render_display(&program_state, square_count, step);
+        //after it finishes rendering, there should be nothing below it
+        eprint!("\x1b[J");
 
         let data = get_input(&mut reader);
 
