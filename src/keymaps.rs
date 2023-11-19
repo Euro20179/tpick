@@ -1,5 +1,4 @@
 use crate::cls;
-use crate::color_conversions::ColorNameStandard;
 use crate::ui;
 use crate::ColorRepresentation;
 use crate::ProgramState;

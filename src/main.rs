@@ -553,7 +553,7 @@ fn main() {
     cls();
 
     loop {
-        let [rows, cols] = query_window_area(&mut reader);
+        let [_rows, cols] = query_window_area(&mut reader);
 
         //this variable keeps track of the step for the step increase for the HSL/RGB rendering
         let step = (360.0

@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use lazy_static::lazy_static;
-
 use crate::{hashmap, read_ansi_color};
 
 pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
