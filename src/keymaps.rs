@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use crate::cls;
+use crate::hashmap;
 use crate::ui;
 use crate::ColorRepresentation;
 use crate::ProgramState;
@@ -9,14 +12,40 @@ pub enum Action {
     Break,
 }
 
+fn read_keymap_config() -> HashMap<String, String> {
+    let mut config_folder = std::env!("XDG_CONFIG_HOME").to_owned();
+    if config_folder == "" {
+        config_folder = String::from(std::env!("HOME")) + &String::from("/.config");
+    }
+    let tpick_config_path = config_folder + &String::from("/tpick");
+    let keymap_path = tpick_config_path + &String::from("/keymaps.json");
+    let keymap_config_file_path = std::path::Path::new(&keymap_path);
+    if keymap_config_file_path.exists() {
+        let data = std::fs::read_to_string(keymap_config_file_path).unwrap();
+        let map: HashMap<String, String> = serde_json::from_str(&data).expect("Invalid keymap config file");
+        return map;
+    } else {
+        hashmap! {
+            "quit".to_owned() => "q".to_owned()
+        }
+    }
+}
+
 pub fn init_keymaps(
 ) -> std::collections::HashMap<String, fn(&mut ProgramState, &str) -> Option<Action>> {
-    let mut key_maps = std::collections::HashMap::<String, fn(&mut ProgramState, &str) -> Option<Action>>::new();
+    let mut key_maps =
+        std::collections::HashMap::<String, fn(&mut ProgramState, &str) -> Option<Action>>::new();
 
-    key_maps.insert("q".to_owned(), |_program_state, _key| Some(Action::Break));
+    let mut config_keymaps = read_keymap_config();
 
-    key_maps.insert("\x0A".to_owned(), |program_state, _key|{
-        paste_to_clipboard(&program_state.output_type.render_output(&program_state.curr_color, program_state.enable_alpha));
+    key_maps.insert(config_keymaps.remove("quit").unwrap_or("q".to_owned()), |_program_state, _key| Some(Action::Break));
+
+    key_maps.insert("\x0A".to_owned(), |program_state, _key| {
+        paste_to_clipboard(
+            &program_state
+                .output_type
+                .render_output(&program_state.curr_color, program_state.enable_alpha),
+        );
         Some(Action::Break)
     });
 
