@@ -26,9 +26,20 @@ fn read_keymap_config() -> HashMap<String, String> {
         return map;
     } else {
         hashmap! {
-            "quit".to_owned() => "q".to_owned()
+            "quit".to_owned() => "q".to_owned(),
+            "quit-and-copy".to_owned() => "\x0A".to_owned(),
+            "set-max-value".to_owned() => "$".to_owned()
         }
     }
+}
+
+macro_rules! hash_get {
+    ($map:expr, $get:literal || $backup:literal) => {
+        $map.get($get).unwrap_or(&$backup.to_owned()).to_owned()
+    };
+    ($map:expr, $get:literal) => {
+        $map.get($get).unwrap().to_owned()
+    };
 }
 
 pub fn init_keymaps(
@@ -36,11 +47,11 @@ pub fn init_keymaps(
     let mut key_maps =
         std::collections::HashMap::<String, fn(&mut ProgramState, &str) -> Option<Action>>::new();
 
-    let mut config_keymaps = read_keymap_config();
+    let config_keymaps = read_keymap_config();
 
-    key_maps.insert(config_keymaps.remove("quit").unwrap_or("q".to_owned()), |_program_state, _key| Some(Action::Break));
+    key_maps.insert(hash_get!(config_keymaps, "quit"), |_program_state, _key| Some(Action::Break));
 
-    key_maps.insert("\x0A".to_owned(), |program_state, _key| {
+    key_maps.insert(hash_get!(config_keymaps, "quit-and-copy"), |program_state, _key| {
         paste_to_clipboard(
             &program_state
                 .output_type
@@ -49,7 +60,7 @@ pub fn init_keymaps(
         Some(Action::Break)
     });
 
-    key_maps.insert("$".to_owned(), |program_state, _key| {
+    key_maps.insert(hash_get!(config_keymaps,"set-max-value"), |program_state, _key| {
         let max_values = program_state.selection_type.max_values();
         let sel_type = program_state.selection_type;
         let new_value = max_values[program_state.selected_item as usize % max_values.len()];
