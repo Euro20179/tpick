@@ -101,7 +101,7 @@ Currently there are no cli options.
     - selection type changed
 - [ ] Config file
   - [ ] Custom output formats
-  - [ ] Keybindings
+  - [x] Keybindings
 
 ## Maybe goals
 
