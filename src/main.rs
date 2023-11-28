@@ -147,7 +147,10 @@ fn render_cymk(curr_color: &ColorRepresentation, square_count: u32, step: f32, c
     let modifier_multiplier = [100.0, 100.0, 100.0, 100.0][cymk_idx];
     eprint!("{}", label);
     let mut color = ColorRepresentation::from_color(
-        &format!("cymk({},{},{}, {})", colors[0], colors[1], colors[2], colors[3]),
+        &format!(
+            "cymk({},{},{}, {})",
+            colors[0], colors[1], colors[2], colors[3]
+        ),
         &ColorNameStandard::W3C,
     );
     for i in 0..square_count {
@@ -161,7 +164,12 @@ fn render_cymk(curr_color: &ColorRepresentation, square_count: u32, step: f32, c
     );
 }
 
-fn cymk_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f32) {
+fn cymk_renderer(
+    curr_color: &ColorRepresentation,
+    selected_item: u8,
+    square_count: u32,
+    step: f32,
+) {
     for i in 0..=3 {
         eprint!("\x1b[{};0H", i * 2 + 1);
         if selected_item == i {
@@ -192,12 +200,13 @@ fn render_sliders(
     square_count: u32,
     step: f32,
     selected_item: u8,
+    selected_type: &SelectionType,
     enable_alpha: bool,
 ) {
     renderer(curr_color, selected_item, square_count, step);
 
     if enable_alpha {
-        if selected_item == 3 {
+        if selected_item as usize == selected_type.increments().len() - 1 {
             eprint!("\x1b[32m");
         }
         render_alpha_display(alpha, square_count, step);
@@ -220,11 +229,12 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
             SelectionType::HSL => hsl_renderer,
             SelectionType::RGB => rgb_renderer,
             SelectionType::ANSI256 => ansi256_renderer,
-            SelectionType::CYMK => cymk_renderer
+            SelectionType::CYMK => cymk_renderer,
         },
         square_count,
         step,
         program_state.selected_item,
+        &program_state.selection_type,
         program_state.enable_alpha,
     );
     eprint!(
@@ -343,7 +353,7 @@ impl SelectionType {
                     modifiables[1] - y,
                     modifiables[2] - m,
                     modifiables[3] - k,
-                    modifiables[4] - program_state.curr_color.a as f32
+                    modifiables[4] - program_state.curr_color.a as f32,
                 ]);
             }
             Self::ANSI256 => {
