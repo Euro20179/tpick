@@ -229,7 +229,8 @@ pub fn init_keymaps(
         program_state.output_type = match program_state.output_type {
             OutputType::HSL => OutputType::RGB,
             OutputType::RGB => OutputType::HEX,
-            OutputType::HEX => OutputType::ANSI,
+            OutputType::HEX => OutputType::CYMK,
+            OutputType::CYMK => OutputType::ANSI,
             OutputType::ANSI => OutputType::HSL,
             OutputType::CUSTOM(..) => OutputType::HSL,
             OutputType::ALL => OutputType::HSL,

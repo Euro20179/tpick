@@ -375,6 +375,7 @@ enum OutputType {
     RGB,
     HEX,
     ANSI,
+    CYMK,
     CUSTOM(String),
     ALL,
 }
@@ -390,6 +391,7 @@ impl Display for OutputType {
                 RGB => "RGB",
                 HEX => "HEX",
                 ANSI => "ANSI",
+                CYMK => "CYMK",
                 CUSTOM(n) => n,
                 ALL => "ALL",
             }

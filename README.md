@@ -78,7 +78,7 @@ Currently there are no cli options.
 - [x] Swap between different selections
   - [x] HSL
   - [x] RGB
-  - [ ] CYMK
+  - [x] CYMK
   - [x] ANSI 256 color selection pannel
 - [x] Ability to input number for slider
 - [x] Swap between different outputs
