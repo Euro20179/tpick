@@ -252,9 +252,11 @@ impl ColorRepresentation {
             }
         }
         let (h, s, l) = self.hsl();
+        let (c, y, m, k) = self.cymk();
         let ch_to_value = hashmap! {
             "R" => self.r, "G" => self.g, "B" => self.b,
             "H" => h, "S" => s, "L" => l,
+            "C" => c, "Y" => y, "M" => m, "K" => k,
             "A" => self.a as f32,
             "D" => (self.r as u32 * ((256u32).pow(2)) + self.g as u32 * 256) as f32 + self.b
         };
