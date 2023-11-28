@@ -20,17 +20,29 @@ fn read_keymap_config() -> HashMap<String, String> {
     let tpick_config_path = config_folder + &String::from("/tpick");
     let keymap_path = tpick_config_path + &String::from("/keymaps.json");
     let keymap_config_file_path = std::path::Path::new(&keymap_path);
+    let mut default = hashmap! {
+        "quit".to_owned() => "q".to_owned(),
+        "quit-and-copy".to_owned() => "\x0A".to_owned(),
+        "set-max-value".to_owned() => "$".to_owned(),
+        "increase-value".to_owned() => "l".to_owned(),
+        "decrease-value".to_owned() => "h".to_owned(),
+        "decrease-value-10".to_owned() => "H".to_owned(),
+        "increase-value-10".to_owned() => "L".to_owned(),
+        "up".to_owned() => "k".to_owned(),
+        "down".to_owned() => "j".to_owned(),
+        "cycle-selection-type".to_owned() => "i".to_owned(),
+        "set-value".to_owned() => "I".to_owned()
+    };
     if keymap_config_file_path.exists() {
         let data = std::fs::read_to_string(keymap_config_file_path).unwrap();
-        let map: HashMap<String, String> = serde_json::from_str(&data).expect("Invalid keymap config file");
-        return map;
-    } else {
-        hashmap! {
-            "quit".to_owned() => "q".to_owned(),
-            "quit-and-copy".to_owned() => "\x0A".to_owned(),
-            "set-max-value".to_owned() => "$".to_owned()
+        let map: HashMap<String, String> =
+            serde_json::from_str(&data).expect("Invalid keymap config file");
+        let keys = map.keys();
+        for key in keys{
+            default.insert(key.to_string(), map.get(key).unwrap().clone());
         }
     }
+    return default;
 }
 
 macro_rules! hash_get {
@@ -49,24 +61,32 @@ pub fn init_keymaps(
 
     let config_keymaps = read_keymap_config();
 
-    key_maps.insert(hash_get!(config_keymaps, "quit"), |_program_state, _key| Some(Action::Break));
-
-    key_maps.insert(hash_get!(config_keymaps, "quit-and-copy"), |program_state, _key| {
-        paste_to_clipboard(
-            &program_state
-                .output_type
-                .render_output(&program_state.curr_color, program_state.enable_alpha),
-        );
+    key_maps.insert(hash_get!(config_keymaps, "quit"), |_program_state, _key| {
         Some(Action::Break)
     });
 
-    key_maps.insert(hash_get!(config_keymaps,"set-max-value"), |program_state, _key| {
-        let max_values = program_state.selection_type.max_values();
-        let sel_type = program_state.selection_type;
-        let new_value = max_values[program_state.selected_item as usize % max_values.len()];
-        sel_type.modify_color_based_on_selected_item(program_state, new_value);
-        None
-    });
+    key_maps.insert(
+        hash_get!(config_keymaps, "quit-and-copy"),
+        |program_state, _key| {
+            paste_to_clipboard(
+                &program_state
+                    .output_type
+                    .render_output(&program_state.curr_color, program_state.enable_alpha),
+            );
+            Some(Action::Break)
+        },
+    );
+
+    key_maps.insert(
+        hash_get!(config_keymaps, "set-max-value"),
+        |program_state, _key| {
+            let max_values = program_state.selection_type.max_values();
+            let sel_type = program_state.selection_type;
+            let new_value = max_values[program_state.selected_item as usize % max_values.len()];
+            sel_type.modify_color_based_on_selected_item(program_state, new_value);
+            None
+        },
+    );
 
     for i in 0..=9 {
         key_maps.insert(i.to_string(), |program_state, key| {
@@ -79,37 +99,64 @@ pub fn init_keymaps(
         });
     }
 
-    for key in ["l", "h"] {
-        key_maps.insert(key.to_owned(), |program_state, key| {
-            let amnt_mult = if key == "l" { 1.0 } else { -1.0 };
+    key_maps.insert(
+        hash_get!(config_keymaps, "increase-value"),
+        |program_state, _key| {
+            let increments = program_state.selection_type.increments();
+            let inc = increments[program_state.selected_item as usize % increments.len()];
+            let colors = program_state.selection_type.colors(&program_state);
+            let color_count = colors.len();
+            let sel_type = program_state.selection_type;
+            let new_value = colors[program_state.selected_item as usize % color_count] + inc;
+            sel_type.modify_color_based_on_selected_item(program_state, new_value);
+            None
+        },
+    );
+
+    key_maps.insert(
+        hash_get!(config_keymaps, "decrease-value"),
+        |program_state, _key| {
+            let increments = program_state.selection_type.increments();
+            let inc = increments[program_state.selected_item as usize % increments.len()];
+            let colors = program_state.selection_type.colors(&program_state);
+            let color_count = colors.len();
+            let sel_type = program_state.selection_type;
+            let new_value = colors[program_state.selected_item as usize % color_count] + inc * -1.0;
+            sel_type.modify_color_based_on_selected_item(program_state, new_value);
+            None
+        },
+    );
+
+    key_maps.insert(
+        hash_get!(config_keymaps, "increase-value-10"),
+        |program_state, _key| {
+            let increments = program_state.selection_type.increments();
+            let inc = increments[program_state.selected_item as usize % increments.len()];
+            let colors = program_state.selection_type.colors(&program_state);
+            let color_count = colors.len();
+            let sel_type = program_state.selection_type;
+            let new_value = colors[program_state.selected_item as usize % color_count] + inc * 10.0;
+            sel_type.modify_color_based_on_selected_item(program_state, new_value);
+            None
+        },
+    );
+
+    key_maps.insert(
+        hash_get!(config_keymaps, "decrease-value-10"),
+        |program_state, _key| {
             let increments = program_state.selection_type.increments();
             let inc = increments[program_state.selected_item as usize % increments.len()];
             let colors = program_state.selection_type.colors(&program_state);
             let color_count = colors.len();
             let sel_type = program_state.selection_type;
             let new_value =
-                colors[program_state.selected_item as usize % color_count] + inc * amnt_mult;
+                colors[program_state.selected_item as usize % color_count] + inc * -10.0;
             sel_type.modify_color_based_on_selected_item(program_state, new_value);
             None
-        });
-    }
+        },
+    );
 
-    for key in ["L", "H"] {
-        key_maps.insert(key.to_owned(), |program_state, key| {
-            let amnt_mult = if key == "L" { 10.0 } else { -10.0 };
-            let increments = program_state.selection_type.increments();
-            let inc = increments[program_state.selected_item as usize % increments.len()];
-            let colors = program_state.selection_type.colors(&program_state);
-            let color_count = colors.len();
-            let sel_type = program_state.selection_type;
-            let new_value =
-                colors[program_state.selected_item as usize % color_count] + inc * amnt_mult;
-            sel_type.modify_color_based_on_selected_item(program_state, new_value);
-            None
-        });
-    }
-
-    key_maps.insert("k".to_owned(), |program_state, _key| {
+    key_maps.insert(hash_get!(config_keymaps, "up"), |program_state, _key| {
         program_state.selected_item = if program_state.selected_item == 0 {
             2 + program_state.enable_alpha as u8
         } else {
@@ -118,53 +165,64 @@ pub fn init_keymaps(
         None
     });
 
-    key_maps.insert("j".to_owned(), |program_state, _key| {
-        program_state.selected_item = if program_state.selected_item == 2 {
-            3 * (program_state.enable_alpha as u8)
+    key_maps.insert(hash_get!(config_keymaps, "down"), |program_state, _key| {
+        let items = program_state.selection_type.max_values();
+        program_state.selected_item = if program_state.selected_item as usize == items.len() - 2 {
+            ((items.len() - 1) as u8) * (program_state.enable_alpha as u8)
         } else {
             program_state.selected_item + 1
         };
         None
     });
 
-    key_maps.insert("i".to_owned(), |program_state, _key| {
-        program_state.selection_type = match program_state.selection_type {
-            SelectionType::HSL => SelectionType::RGB,
-            SelectionType::RGB => {
-                cls();
-                SelectionType::ANSI256
-            }
-            SelectionType::ANSI256 => {
-                cls();
-                program_state.selected_item = 0;
-                SelectionType::HSL
-            }
-        };
-        None
-    });
+    key_maps.insert(
+        hash_get!(config_keymaps, "cycle-selection-type"),
+        |program_state, _key| {
+            program_state.selection_type = match program_state.selection_type {
+                SelectionType::HSL => SelectionType::RGB,
+                SelectionType::RGB => {
+                    cls();
+                    SelectionType::CYMK
+                }
+                SelectionType::CYMK => {
+                    cls();
+                    SelectionType::ANSI256
+                }
+                SelectionType::ANSI256 => {
+                    cls();
+                    program_state.selected_item = 0;
+                    SelectionType::HSL
+                }
+            };
+            None
+        },
+    );
 
-    key_maps.insert("I".to_owned(), |program_state, _key| {
-        let mut reader = std::io::stdin();
-        let n = ui::input(
-            &format!(
-                "Type {}: ",
-                program_state
-                    .selection_type
-                    .label_from_selected_item(program_state.selected_item)
-            ),
-            &mut reader,
-            30,
-            1,
-        );
-        let number = n.parse();
-        if let Ok(n) = number {
-            let sel_type = program_state.selection_type;
-            sel_type.modify_color_based_on_selected_item(program_state, n);
-        } else {
-            print!("\x1b[s\x1b[30;1H\x1b[31m{}\x1b[0m\x1b[u", "Invalid number");
-        };
-        None
-    });
+    key_maps.insert(
+        hash_get!(config_keymaps, "set-value"),
+        |program_state, _key| {
+            let mut reader = std::io::stdin();
+            let n = ui::input(
+                &format!(
+                    "Set value {}: ",
+                    program_state
+                        .selection_type
+                        .label_from_selected_item(program_state.selected_item)
+                ),
+                &mut reader,
+                30,
+                1,
+            );
+            let number = n.parse();
+            if let Ok(n) = number {
+                let sel_type = program_state.selection_type;
+                sel_type.modify_color_based_on_selected_item(program_state, n);
+            } else {
+                print!("\x1b[s\x1b[30;1H\x1b[31m{}\x1b[0m\x1b[u", "Invalid number");
+            };
+            None
+        },
+    );
 
     key_maps.insert("o".to_owned(), |program_state, _key| {
         program_state.output_type = match program_state.output_type {

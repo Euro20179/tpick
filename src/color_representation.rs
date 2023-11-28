@@ -2,9 +2,11 @@ use std::fmt::Display;
 use std::fmt::LowerHex;
 use std::str::Split;
 
+use crate::color_conversions::cymk2rgb;
 use crate::color_conversions::hex62rgb;
 use crate::color_conversions::name_to_hex;
 use crate::color_conversions::ColorNameStandard;
+use crate::color_conversions::rgb2cymk;
 use crate::hsl2rgb;
 use crate::rgb2hsl;
 use crate::OutputType;
@@ -75,6 +77,14 @@ impl ColorRepresentation {
             let l: f32 = get_next(&mut items);
             (r, g, b) = hsl2rgb(h, s, l);
         }
+        else if clr.starts_with("cymk"){
+            let mut items = clr[5..clr.len() - 1].split(",");
+            let c: f32 = get_next(&mut items);
+            let y: f32 = get_next(&mut items);
+            let m: f32 = get_next(&mut items);
+            let k: f32 = get_next(&mut items);
+            (r, g, b) = cymk2rgb(c, y, m, k);
+        }
         //#RGB or #RGBA or #RRGGBB or #RRGGBBAA
         else if clr.starts_with("#")
             && (clr.len() == 4 || clr.len() == 5 || clr.len() == 7 || clr.len() == 9)
@@ -124,8 +134,18 @@ impl ColorRepresentation {
         self.modify_a(self.a as i32 + hsla[3] as i32);
     }
 
+    pub fn add_cymka(&mut self, cymka: [f32; 5]){
+        let (c, y, m, k) = self.cymk();
+        self.modify_cymk((c + cymka[0], y + cymka[1], m + cymka[2], k + cymka[3]));
+        self.modify_a(self.a  as i32 + cymka[4] as i32);
+    }
+
     pub fn hsl(&self) -> (f32, f32, f32) {
         return rgb2hsl(self.r, self.g, self.b);
+    }
+
+    pub fn cymk(&self) -> (f32, f32, f32, f32) {
+        return rgb2cymk(self.r, self.g, self.b);
     }
 
     pub fn rgb(&self) -> (f32, f32, f32) {
@@ -149,6 +169,14 @@ impl ColorRepresentation {
         new_value.1 = clamp_with_bel!(0.0, new_value.1, 100.0);
         new_value.2 = clamp_with_bel!(0.0, new_value.2, 100.0);
         (self.r, self.g, self.b) = hsl2rgb(new_value.0, new_value.1, new_value.2);
+    }
+
+    pub fn modify_cymk(&mut self, mut new_value: (f32, f32, f32, f32)){
+        new_value.0 = clamp_with_bel!(0.0, new_value.0, 100.0);
+        new_value.1 = clamp_with_bel!(0.0, new_value.1, 100.0);
+        new_value.2 = clamp_with_bel!(0.0, new_value.2, 100.0);
+        new_value.3 = clamp_with_bel!(0.0, new_value.3, 100.0);
+        (self.r, self.g, self.b) = cymk2rgb(new_value.0, new_value.1, new_value.2, new_value.3);
     }
 
     pub fn get_output_clr(&self, output_type: &OutputType, enable_alpha: bool) -> String {
