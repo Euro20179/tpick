@@ -197,7 +197,6 @@ fn render_sliders(
     renderer(curr_color, selected_item, square_count, step);
 
     if enable_alpha {
-        eprint!("\x1b[7;0H");
         if selected_item == 3 {
             eprint!("\x1b[32m");
         }

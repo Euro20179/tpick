@@ -157,8 +157,9 @@ pub fn init_keymaps(
     );
 
     key_maps.insert(hash_get!(config_keymaps, "up"), |program_state, _key| {
+        let items = program_state.selection_type.max_values();
         program_state.selected_item = if program_state.selected_item == 0 {
-            2 + program_state.enable_alpha as u8
+            (items.len() - 2) as u8 + program_state.enable_alpha as u8
         } else {
             program_state.selected_item - 1
         };
@@ -167,8 +168,8 @@ pub fn init_keymaps(
 
     key_maps.insert(hash_get!(config_keymaps, "down"), |program_state, _key| {
         let items = program_state.selection_type.max_values();
-        program_state.selected_item = if program_state.selected_item as usize == items.len() - 2 {
-            ((items.len() - 1) as u8) * (program_state.enable_alpha as u8)
+        program_state.selected_item = if program_state.selected_item as usize == items.len() - ((2 - program_state.enable_alpha as usize) as usize) {
+            0
         } else {
             program_state.selected_item + 1
         };
