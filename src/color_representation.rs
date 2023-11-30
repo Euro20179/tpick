@@ -244,10 +244,10 @@ impl ColorRepresentation {
             Hex,
         }
         impl FormatType {
-            fn format<T: LowerHex + Display>(&self, val: T) -> String {
+            fn format<T: LowerHex + Display>(&self, val: T, width: usize) -> String {
                 match self {
                     Self::String => format!("{}", val),
-                    Self::Hex => format!("{:02x}", val),
+                    Self::Hex => format!("{:0width$x}", val),
                 }
             }
         }
@@ -263,6 +263,7 @@ impl ColorRepresentation {
         let mut result = String::new();
         let mut is_fmt_char = false;
         let mut fmt_char_type = FormatType::String;
+        let mut width = String::new();
         for i in 0..fmt.len() {
             let ch = &fmt[i..i + 1];
             if ch == "%" {
@@ -272,7 +273,10 @@ impl ColorRepresentation {
             }
             if is_fmt_char {
                 if let Some(v) = ch_to_value.get(ch) {
-                    result += &fmt_char_type.format(*v as u32);
+                    result += &fmt_char_type.format(*v as u32, width.parse().unwrap());
+                } else if let Ok(v) = ch.parse::<u8>() {
+                    width += &v.to_string();
+                    continue;
                 } else if ch == "x" {
                     fmt_char_type = FormatType::Hex;
                     continue;

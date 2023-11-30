@@ -87,6 +87,7 @@ Currently there are no cli options.
   - [x] Custom output formats
   - [x] <del>Show multiple different custom output formats</del>
     - This is unecessary as different formats can be seperated with %n (a new line)
+- [ ] Swap between different output cycles
 - [x] Specify starting value with cli option
   - [x] Read starting value from stdin
 - [x] Copy output
@@ -99,8 +100,8 @@ Currently there are no cli options.
     - color change
     - on color copy
     - selection type changed
-- [ ] Config file
-  - [ ] Custom output formats
+- [x] Config file
+  - [x] Custom output formats
   - [x] Keybindings
 - [ ] Multiple color previews to allow color comparisons
 
