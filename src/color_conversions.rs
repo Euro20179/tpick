@@ -149,7 +149,6 @@ pub fn rgb2ansi256(r: i8, g: i8, b: i8) -> u8 {
     let n = rgb2number(r as f32, g as f32, b as f32) as i32;
     let mut i = 0;
     while i < numbers.len() - 1 {
-        println!("{:?} {:?}", n, numbers[i]);
         let (s, b) = (numbers[i], numbers[i + 1]);
         if s <= n && n <= b {
             let s1 = (s - n).abs();
@@ -165,10 +164,6 @@ pub fn rgb2ansi256(r: i8, g: i8, b: i8) -> u8 {
         i += 1;
     }
     return 0
-    // let rgb_num = rgb2number(res[0] as f32, res[1] as f32, res[2] as f32);
-    // println!("{:?}", res);
-    // println!("{}", rgb_num);
-    // *ansi_table.get(&rgb_num).unwrap()
 }
 
 #[derive(clap::ValueEnum, Debug, Clone, PartialEq, Copy)]
