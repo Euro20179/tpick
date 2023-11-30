@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::ConfigOutput;
 use crate::cls;
 use crate::hashmap;
 use crate::ui;
@@ -232,7 +233,7 @@ pub fn init_keymaps(
     insert("select-output".to_string(), |program_state, _key| {
         let mut reader = std::io::stdin();
         let how_to_select = ui::selection_menu(
-            vec!["select output", "custom format", "all outputs"],
+            vec!["select output", "custom format", "all outputs", "select output cycle"],
             &mut reader,
             30,
             1,
@@ -243,6 +244,17 @@ pub fn init_keymaps(
             program_state.output_type = OutputType::CUSTOM(fmt);
         } else if how_to_select == "all outputs" {
             program_state.output_type = OutputType::ALL
+        } else if how_to_select == "select output cycle" {
+            let outputs = &program_state.config.outputs.clone().unwrap_or(vec![hashmap!(
+                    "default".to_string() => ConfigOutput {
+                        order: vec!["hsl".to_string(), "rgb".to_string(), "hex".to_string(), "cymk".to_string(), "ansi".to_owned()]
+                    }
+            )])[0];
+            let items: Vec<&String> = outputs.keys().collect();
+            let cycle = ui::selection_menu(items, &mut reader, 30, 1);
+            program_state.output_order = OutputType::get_order_by_name(&program_state.config, &cycle).unwrap();
+            program_state.output_idx = 0;
+            program_state.next_output();
         } else {
             let o_type = ui::selection_menu(
                 vec![

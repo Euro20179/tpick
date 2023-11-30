@@ -90,7 +90,7 @@ See the [example config](./example-config.toml)
   - [x] Custom output formats
   - [x] <del>Show multiple different custom output formats</del>
     - This is unecessary as different formats can be seperated with %n (a new line)
-- [ ] Swap between different output cycles
+- [x] Swap between different output cycles
 - [x] Specify starting value with cli option
   - [x] Read starting value from stdin
 - [x] Copy output
