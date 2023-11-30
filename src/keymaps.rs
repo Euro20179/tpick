@@ -4,6 +4,7 @@ use crate::cls;
 use crate::hashmap;
 use crate::ui;
 use crate::ColorRepresentation;
+use crate::Config;
 use crate::ProgramState;
 use crate::{paste_to_clipboard, read_clipboard};
 use crate::{OutputType, SelectionType};
@@ -12,14 +13,7 @@ pub enum Action {
     Break,
 }
 
-fn read_keymap_config() -> HashMap<String, String> {
-    let mut config_folder = std::env!("XDG_CONFIG_HOME").to_owned();
-    if config_folder == "" {
-        config_folder = String::from(std::env!("HOME")) + &String::from("/.config");
-    }
-    let tpick_config_path = config_folder + &String::from("/tpick");
-    let keymap_path = tpick_config_path + &String::from("/keymaps.json");
-    let keymap_config_file_path = std::path::Path::new(&keymap_path);
+fn read_keymap_from_config(config: &Config) -> HashMap<String, String> {
     let mut default = hashmap! {
         "quit".to_owned() => "q".to_owned(),
         "quit-and-copy".to_owned() => "\x0A".to_owned(),
@@ -50,13 +44,13 @@ fn read_keymap_config() -> HashMap<String, String> {
         "80%".to_owned() => "8".to_owned(),
         "90%".to_owned() => "9".to_owned(),
     };
-    if keymap_config_file_path.exists() {
-        let data = std::fs::read_to_string(keymap_config_file_path).unwrap();
-        let map: HashMap<String, String> =
-            serde_json::from_str(&data).expect("Invalid keymap config file");
-        let keys = map.keys();
-        for key in keys {
-            default.insert(key.to_string(), map.get(key).unwrap().clone());
+    match &config.keybinds {
+        None => return default,
+        Some(map) => {
+            let keys = map.keys();
+            for key in keys {
+                default.insert(key.to_string(), map.get(key).unwrap().clone());
+            }
         }
     }
     return default;
@@ -72,11 +66,12 @@ macro_rules! hash_get {
 }
 
 pub fn init_keymaps(
+    config: &Config
 ) -> std::collections::HashMap<String, fn(&mut ProgramState, &str) -> Option<Action>> {
     let mut key_maps =
         std::collections::HashMap::<String, fn(&mut ProgramState, &str) -> Option<Action>>::new();
 
-    let config_keymaps = read_keymap_config();
+    let config_keymaps = read_keymap_from_config(config);
 
     let mut insert = |name: String, cb| {
         let n = &name.clone();

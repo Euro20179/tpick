@@ -102,6 +102,7 @@ Currently there are no cli options.
 - [ ] Config file
   - [ ] Custom output formats
   - [x] Keybindings
+- [ ] Multiple color previews to allow color comparisons
 
 ## Maybe goals
 

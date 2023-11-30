@@ -12,10 +12,11 @@ use color_representation::*;
 use keymaps::Action;
 use termios::Termios;
 
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::io::Read;
 use std::os::fd::AsRawFd;
-use std::slice::SliceIndex;
+use std::process::exit;
 
 use base64::engine::general_purpose;
 use base64::prelude::*;
@@ -250,6 +251,17 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
     );
 }
 
+#[derive(serde::Deserialize, Clone)]
+struct ConfigOutput {
+    order: Vec<String>,
+}
+
+#[derive(serde::Deserialize, Clone)]
+struct Config {
+    keybinds: Option<HashMap<String, String>>,
+    outputs: Option<Vec<HashMap<String, ConfigOutput>>>,
+}
+
 struct ProgramState {
     selection_type: SelectionType,
     selected_item: u8,
@@ -259,6 +271,7 @@ struct ProgramState {
     clr_std: ColorNameStandard,
     output_idx: usize,
     output_order: Vec<OutputType>,
+    config: Config,
 }
 
 impl ProgramState {
@@ -268,6 +281,7 @@ impl ProgramState {
         starting_clr: &str,
         clr_std: ColorNameStandard,
         output_order: Vec<OutputType>,
+        cfg: Config,
     ) -> ProgramState {
         ProgramState {
             selected_item: 0,
@@ -278,12 +292,13 @@ impl ProgramState {
             curr_color: ColorRepresentation::from_color(starting_clr, &clr_std),
             output_idx: 0,
             output_order,
+            config: cfg,
         }
     }
 
     fn next_output(&mut self) {
         self.output_idx = (self.output_idx + 1) % self.output_order.len();
-        match self.output_type{
+        match self.output_type {
             OutputType::ALL => self.output_idx = 0,
             _ => {}
         }
@@ -441,7 +456,48 @@ impl OutputType {
         )
     }
 
-    fn default_order() -> Vec<Self> {
+    fn from_str(data: &str) -> Self {
+        match data.to_lowercase().as_str() {
+            "hsl" => Self::HSL,
+            "rgb" => Self::RGB,
+            "hex" => Self::HEX,
+            "cymk" => Self::CYMK,
+            "ansi" => Self::ANSI,
+            "all" => Self::ALL,
+            _ => Self::CUSTOM(data.to_string()),
+        }
+    }
+
+    fn get_order_by_name(config: &Config, name: &str) -> Option<Vec<Self>> {
+        if name == "default" {
+            return Some(Self::default_order(config));
+        }
+        if let Some(output_cfg) = &config.outputs {
+            let outputs = &output_cfg[0];
+            if let Some(default) = outputs.get(name) {
+                return Some(
+                    default
+                        .order
+                        .iter()
+                        .map(|item| OutputType::from_str(item))
+                        .collect(),
+                );
+            }
+        }
+        None
+    }
+
+    fn default_order(config: &Config) -> Vec<Self> {
+        if let Some(output_cfg) = &config.outputs {
+            let outputs = &output_cfg[0];
+            if let Some(default) = outputs.get("default") {
+                return default
+                    .order
+                    .iter()
+                    .map(|item| OutputType::from_str(item))
+                    .collect();
+            }
+        }
         vec![
             OutputType::HSL,
             OutputType::RGB,
@@ -613,15 +669,13 @@ fn main() {
     }
     let clr_std = args.clr_standard.unwrap_or(ColorNameStandard::W3C);
 
-    let output_type = match args.output_type.unwrap_or(RequestedOutputType::HSL) {
+    let output_type = match args.output_type.clone().unwrap_or(RequestedOutputType::HSL) {
         RequestedOutputType::HSL => OutputType::HSL,
         RequestedOutputType::RGB => OutputType::RGB,
         RequestedOutputType::HEX => OutputType::HEX,
-        RequestedOutputType::CUSTOM => {
-            OutputType::CUSTOM(args.output_fmt.unwrap_or("%xD".to_string()))
-        }
+        RequestedOutputType::CUSTOM => OutputType::CUSTOM(args.output_fmt.unwrap_or("%D".to_string()).to_owned()),
     };
-
+    let used_custom_output_type = if let Some(..) = args.output_type { true } else { false };
     let (tios_initial, _tios) = setup_term();
 
     if args.list_colors {
@@ -641,13 +695,33 @@ fn main() {
         close_term(&tios_initial);
         return;
     }
+    let mut config_folder = std::env!("XDG_CONFIG_HOME").to_owned();
+    if config_folder == "" {
+        config_folder = String::from(std::env!("HOME")) + &String::from("/.config");
+    }
+    let tpick_config_path = config_folder + &String::from("/tpick");
+    let config_path = tpick_config_path + &String::from("/config.toml");
+
+    let data = std::fs::read_to_string(config_path).unwrap_or("".to_string());
+    let cfg = toml::from_str(&data).unwrap();
+
+    let cycle_to_use = args.output_cycle.unwrap_or("default".to_owned());
+    let cycle = OutputType::get_order_by_name(&cfg, &cycle_to_use);
+
+    if let None = cycle {
+        eprintln!("Invalid cycle: {}", cycle_to_use);
+        exit(1);
+    }
+
+    let output_cycle = cycle.unwrap();
 
     let mut program_state = ProgramState::new(
         requested_input_type,
-        output_type,
+        if used_custom_output_type { output_type } else { output_cycle[0].clone() },
         &starting_clr,
         clr_std,
-        OutputType::default_order(),
+        output_cycle,
+        cfg.to_owned(),
     );
 
     if let Some(ConvertSub::Convert(conversion)) = args.convert {
@@ -656,7 +730,7 @@ fn main() {
         return;
     }
 
-    let key_mappings = keymaps::init_keymaps();
+    let key_mappings = keymaps::init_keymaps(&program_state.config);
 
     eprint!("\x1b[?1049h");
 

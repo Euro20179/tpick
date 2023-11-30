@@ -1,8 +1,9 @@
 use clap::ColorChoice;
 use clap::Parser;
 
-use crate::SelectionType;
 use crate::ColorNameStandard;
+use crate::OutputType;
+use crate::SelectionType;
 
 #[derive(Debug, PartialEq, Clone, clap::ValueEnum)]
 pub enum RequestedOutputType {
@@ -10,6 +11,19 @@ pub enum RequestedOutputType {
     RGB,
     HEX,
     CUSTOM,
+}
+
+impl RequestedOutputType {
+    pub fn to_output_type(&self, custom_fmt: &str) -> OutputType {
+        match self {
+            RequestedOutputType::HSL => OutputType::HSL,
+            RequestedOutputType::RGB => OutputType::RGB,
+            RequestedOutputType::HEX => OutputType::HEX,
+            RequestedOutputType::CUSTOM => {
+                OutputType::CUSTOM(custom_fmt.to_owned())
+            }
+        }
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -40,6 +54,12 @@ pub struct Args {
         long_help = "The starting input type"
     )]
     pub input_type: Option<SelectionType>,
+    #[arg(
+        short = 'O',
+        long,
+        help = "The output cycle to use (defined in your config)"
+    )]
+    pub output_cycle: Option<String>,
     #[arg(short, long, help = "The output format type")]
     pub output_type: Option<RequestedOutputType>,
     #[arg(
