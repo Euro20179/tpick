@@ -682,6 +682,7 @@ fn main() {
         RequestedOutputType::HSL => OutputType::HSL,
         RequestedOutputType::RGB => OutputType::RGB,
         RequestedOutputType::HEX => OutputType::HEX,
+        RequestedOutputType::CYMK => OutputType::CYMK,
         RequestedOutputType::CUSTOM => OutputType::CUSTOM(args.output_fmt.unwrap_or("%D".to_string()).to_owned()),
     };
     let used_custom_output_type = if let Some(..) = args.output_type { true } else { false };
