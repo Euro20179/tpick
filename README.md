@@ -73,6 +73,9 @@ Currently there are no cli options.
 - `#RRGGBBAA`
 - `\x1b[38;2;R;G;Bm`
 
+## Configuration
+See the [example config](./example-config.toml)
+
 # Goals
 
 - [x] Swap between different selections
