@@ -15,6 +15,7 @@ use termios::Termios;
 use std::fmt::Display;
 use std::io::Read;
 use std::os::fd::AsRawFd;
+use std::slice::SliceIndex;
 
 use base64::engine::general_purpose;
 use base64::prelude::*;
@@ -256,9 +257,42 @@ struct ProgramState {
     output_type: OutputType,
     curr_color: ColorRepresentation,
     clr_std: ColorNameStandard,
+    output_idx: usize,
+    output_order: Vec<OutputType>,
 }
 
-#[derive(Copy, Clone, PartialEq, clap::ValueEnum, Debug)]
+impl ProgramState {
+    fn new(
+        selection_type: SelectionType,
+        output_type: OutputType,
+        starting_clr: &str,
+        clr_std: ColorNameStandard,
+        output_order: Vec<OutputType>,
+    ) -> ProgramState {
+        ProgramState {
+            selected_item: 0,
+            selection_type,
+            output_type,
+            enable_alpha: false,
+            clr_std,
+            curr_color: ColorRepresentation::from_color(starting_clr, &clr_std),
+            output_idx: 0,
+            output_order,
+        }
+    }
+
+    fn next_output(&mut self) {
+        self.output_idx = (self.output_idx + 1) % self.output_order.len();
+        match self.output_type{
+            OutputType::ALL => self.output_idx = 0,
+            _ => {}
+        }
+        let v = &self.output_order[self.output_idx];
+        self.output_type = v.clone();
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug, clap::ValueEnum)]
 enum SelectionType {
     HSL,
     RGB,
@@ -405,6 +439,16 @@ impl OutputType {
             "{}",
             curr_color.get_formatted_output_clr(self, enable_alpha)
         )
+    }
+
+    fn default_order() -> Vec<Self> {
+        vec![
+            OutputType::HSL,
+            OutputType::RGB,
+            OutputType::HEX,
+            OutputType::CYMK,
+            OutputType::ANSI,
+        ]
     }
 }
 
@@ -598,14 +642,13 @@ fn main() {
         return;
     }
 
-    let mut program_state = ProgramState {
-        selected_item: 0,
-        selection_type: requested_input_type,
+    let mut program_state = ProgramState::new(
+        requested_input_type,
         output_type,
-        enable_alpha: false,
+        &starting_clr,
         clr_std,
-        curr_color: ColorRepresentation::from_color(starting_clr.as_str(), &clr_std),
-    };
+        OutputType::default_order(),
+    );
 
     if let Some(ConvertSub::Convert(conversion)) = args.convert {
         convert(conversion, &program_state.curr_color);

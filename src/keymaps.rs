@@ -224,15 +224,7 @@ pub fn init_keymaps(
     });
 
     insert("change-output".to_string(), |program_state, _key| {
-        program_state.output_type = match program_state.output_type {
-            OutputType::HSL => OutputType::RGB,
-            OutputType::RGB => OutputType::HEX,
-            OutputType::HEX => OutputType::CYMK,
-            OutputType::CYMK => OutputType::ANSI,
-            OutputType::ANSI => OutputType::HSL,
-            OutputType::CUSTOM(..) => OutputType::HSL,
-            OutputType::ALL => OutputType::HSL,
-        };
+        program_state.next_output();
         None
     });
 
@@ -246,6 +238,7 @@ pub fn init_keymaps(
         );
         if how_to_select == "custom format" {
             let fmt = ui::input("Format: ", &mut reader, 30, 1);
+            program_state.output_idx = 0; //restart the cycle
             program_state.output_type = OutputType::CUSTOM(fmt);
         } else if how_to_select == "all outputs" {
             program_state.output_type = OutputType::ALL
