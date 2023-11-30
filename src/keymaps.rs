@@ -154,6 +154,9 @@ pub fn init_keymaps(
     });
 
     insert("up".to_string(), |program_state, _key| {
+        if let SelectionType::ANSI256 = program_state.selection_type{
+            return None;
+        }
         let items = program_state.selection_type.max_values();
         program_state.selected_item = if program_state.selected_item == 0 {
             (items.len() - 2) as u8 + program_state.enable_alpha as u8
@@ -164,6 +167,9 @@ pub fn init_keymaps(
     });
 
     insert("down".to_string(), |program_state, _key| {
+        if let SelectionType::ANSI256 = program_state.selection_type{
+            return None;
+        }
         let items = program_state.selection_type.max_values();
         program_state.selected_item = if program_state.selected_item as usize
             == items.len() - ((2 - program_state.enable_alpha as usize) as usize)
