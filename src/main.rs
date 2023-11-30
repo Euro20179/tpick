@@ -33,15 +33,17 @@ fn render_ansi256(selected_item: u8, _square_count: u32) {
         eprint!("\x1b[38;5;{}m{:<3} ", low_nr, low_nr);
     }
     eprintln!();
-    for x in 0..6 {
-        eprint!(" ");
-        for y in 0..6 {
-            for z in 0..6 {
-                let clr = (x + 16) + (6 * y) + (36 * z);
-                eprint!("\x1b[38;5;{}m{:<3} ", clr, clr);
+    for i in 0..2 {
+        for x in 0..6 {
+            eprint!(" ");
+            for y in 0..6 {
+                for z in (i * 3)..(3 + i * 3) {
+                    let clr = (x + 16) + (6 * y) + (36 * z);
+                    eprint!("\x1b[38;5;{}m{:<3} ", clr, clr);
+                }
             }
+            eprintln!();
         }
-        eprintln!();
     }
     eprint!(" ");
     for grey_nr in 232..256 {
@@ -61,7 +63,7 @@ fn ansi256_renderer(
     let mut reader = std::io::stdin();
     let [_rows, cols] = query_window_area(&mut reader);
     eprint!("\x1b[0H");
-    if cols < 145 {
+    if cols < 97 {
         eprintln!("\x1b[31mThis terminal is too small to display the ansi picker")
     }
     else {
