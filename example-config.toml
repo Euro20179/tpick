@@ -1,0 +1,57 @@
+[keybinds]
+quit = "q",
+quit-and-copy = "\x0A",
+set-max-value = "$",
+increase-value = "l",
+decrease-value = "h",
+decrease-value-10 = "H",
+increase-value-10 = "L",
+up = "k",
+down = "j",
+cycle-selection-type = "i",
+set-value = "I",
+change-output = "o",
+select-output = "O",
+input-new-color = "n",
+copy = "y",
+copy-raw = "Y",
+paste = "p",
+toggle-alpha = "a",
+"00%" = "0",
+"10%" = "1",
+"20%" = "2",
+"30%" = "3",
+"40%" = "4",
+"50%" = "5",
+"60%" = "6",
+"70%" = "7",
+"80%" = "8",
+"90%" = "9"
+
+[[outputs]]
+    [outputs.default]
+    order = ["hsl", "rgb", "hex", "cymk", "ansi"]
+
+    [order.my_order]
+    order = ["hsl", "RED: %R, GREEN: %G, BLUE: %B"]
+    #format syntax: %[$type][$width]<format>
+    #possible formats
+    # red: R
+    # green: G
+    # blue: B
+    # hue: H
+    # saturation: S
+    # lightness: L
+    # cyan: C
+    # yellow Y
+    # magenta: M
+    # black: K
+    # alpha: A
+    # rgb as an integer: D
+    # 
+    # All formats accept a `$type` and `$width` argument
+
+    # possible types
+    # hex: x
+
+    # $width can be any positive integer
