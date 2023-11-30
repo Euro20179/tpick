@@ -5,6 +5,7 @@ use std::str::Split;
 use crate::color_conversions::cymk2rgb;
 use crate::color_conversions::hex62rgb;
 use crate::color_conversions::name_to_hex;
+use crate::color_conversions::rgb2ansi256;
 use crate::color_conversions::rgb2cymk;
 use crate::color_conversions::ColorNameStandard;
 use crate::hsl2rgb;
@@ -258,12 +259,13 @@ impl ColorRepresentation {
             "H" => h, "S" => s, "L" => l,
             "C" => c, "Y" => y, "M" => m, "K" => k,
             "A" => self.a as f32,
-            "D" => (self.r as u32 * ((256u32).pow(2)) + self.g as u32 * 256) as f32 + self.b
+            "D" => (self.r as u32 * ((256u32).pow(2)) + self.g as u32 * 256) as f32 + self.b,
+            "E" => rgb2ansi256(self.r as i8, self.g as i8, self.b as i8) as f32
         };
         let mut result = String::new();
         let mut is_fmt_char = false;
         let mut fmt_char_type = FormatType::String;
-        let mut width = String::new();
+        let mut width = String::from("2");
         for i in 0..fmt.len() {
             let ch = &fmt[i..i + 1];
             if ch == "%" {

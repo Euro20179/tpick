@@ -13,19 +13,6 @@ pub enum RequestedOutputType {
     CUSTOM,
 }
 
-impl RequestedOutputType {
-    pub fn to_output_type(&self, custom_fmt: &str) -> OutputType {
-        match self {
-            RequestedOutputType::HSL => OutputType::HSL,
-            RequestedOutputType::RGB => OutputType::RGB,
-            RequestedOutputType::HEX => OutputType::HEX,
-            RequestedOutputType::CUSTOM => {
-                OutputType::CUSTOM(custom_fmt.to_owned())
-            }
-        }
-    }
-}
-
 #[derive(Parser, Debug)]
 #[command(color = ColorChoice::Auto, long_about = "A color picker")]
 pub struct Args {

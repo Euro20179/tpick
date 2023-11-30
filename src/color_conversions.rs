@@ -42,12 +42,12 @@ pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
     return ((r * 255.0), (g * 255.0), (b * 255.0));
 }
 
-pub fn rgb2cymk(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32, f32){
+pub fn rgb2cymk(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32, f32) {
     r /= 255.0;
     g /= 255.0;
     b /= 255.0;
     let k = 1.0 - max!(max!(r, g), b);
-    let c = (1.0 -r - k) / (1.0 - k);
+    let c = (1.0 - r - k) / (1.0 - k);
     let m = (1.0 - g - k) / (1.0 - k);
     let y = (1.0 - b - k) / (1.0 - k);
     return (c * 100.0, y * 100.0, m * 100.0, k * 100.0);
@@ -132,6 +132,45 @@ pub fn ansi2562rgb(ansi: u8, low_rgb: &Vec<String>) -> (u8, u8, u8) {
     return (r, g, b);
 }
 
+pub fn rgb2number(r: f32, g: f32, b: f32) -> u32 {
+    (r as u32 * ((256u32).pow(2)) + g as u32 * 256) as u32 + b as u32
+}
+
+pub fn rgb2ansi256(r: i8, g: i8, b: i8) -> u8 {
+    let low_rgb: Vec<String> = (0..16).map(|_| "#000000".to_owned()).collect();
+    let mut ansi_table: HashMap<i32, u8> = HashMap::new();
+    let mut numbers = vec![];
+    for clr in 16..=231 {
+        let (r, g, b) = ansi2562rgb(clr, &low_rgb);
+        let n = rgb2number(r as f32, g as f32, b as f32) as i32;
+        ansi_table.insert(n, clr);
+        numbers.push(n);
+    }
+    let n = rgb2number(r as f32, g as f32, b as f32) as i32;
+    let mut i = 0;
+    while i < numbers.len() - 1 {
+        println!("{:?} {:?}", n, numbers[i]);
+        let (s, b) = (numbers[i], numbers[i + 1]);
+        if s <= n && n <= b {
+            let s1 = (s - n).abs();
+            let b1 = (b - n).abs();
+            let closest;
+            if s1 < b1 {
+                closest = s;
+            } else {
+                closest = b;
+            }
+            return *ansi_table.get(&closest).unwrap();
+        }
+        i += 1;
+    }
+    return 0
+    // let rgb_num = rgb2number(res[0] as f32, res[1] as f32, res[2] as f32);
+    // println!("{:?}", res);
+    // println!("{}", rgb_num);
+    // *ansi_table.get(&rgb_num).unwrap()
+}
+
 #[derive(clap::ValueEnum, Debug, Clone, PartialEq, Copy)]
 pub enum ColorNameStandard {
     X11,
@@ -163,7 +202,7 @@ impl ColorNameStandard {
             ["bright white", "97"] => Box::new(ColorNameStandard::bright_white as TermClrConvertFn),
             ["bright yellow", "93"] => Box::new(ColorNameStandard::bright_yellow as TermClrConvertFn),
         };
-        let mut data: HashMap<&str, [u8; 3]> = hashmap!{
+        let mut data: HashMap<&str, [u8; 3]> = hashmap! {
             "alice blue" => [0xf0, 0xf8, 0xff],
             "antique white" => [0xfa, 0xeb, 0xd7],
             "aqua" => [0x00, 0xff, 0xff],
@@ -447,7 +486,7 @@ impl ColorNameStandard {
             _ => [0x80, 0x00, 0x00],
         }
     }
-    fn purple(&self) -> [u8; 3]{
+    fn purple(&self) -> [u8; 3] {
         match self {
             Self::X11 => [0xa0, 0x20, 0xf0],
             _ => [0x80, 0x00, 0x80],
