@@ -125,9 +125,9 @@ pub fn ansi2562rgb(ansi: u8, low_rgb: &Vec<String>) -> (u8, u8, u8) {
     let mut b = n % 6;
     let mut g = (n - b) / 6 % 6;
     let mut r = (n - b - g * 6) / 36 % 6;
-    b = if b != 0 { b * 40 + 50 } else { 0 };
-    r = if r != 0 { r * 40 + 50 } else { 0 };
-    g = if g != 0 { g * 40 + 50 } else { 0 };
+    b = if b != 0 { b * 40 + 55 } else { 0 };
+    r = if r != 0 { r * 40 + 55 } else { 0 };
+    g = if g != 0 { g * 40 + 55 } else { 0 };
 
     return (r, g, b);
 }
@@ -136,34 +136,37 @@ pub fn rgb2number(r: f32, g: f32, b: f32) -> u32 {
     (r as u32 * ((256u32).pow(2)) + g as u32 * 256) as u32 + b as u32
 }
 
-pub fn rgb2ansi256(r: i8, g: i8, b: i8) -> u8 {
+pub fn rgb2ansi256(r: u8, g: u8, b: u8) -> u8 {
     let low_rgb: Vec<String> = (0..16).map(|_| "#000000".to_owned()).collect();
     let mut ansi_table: HashMap<i32, u8> = HashMap::new();
-    let mut numbers = vec![];
+    let mut numbers: Vec<[u8; 3]> = vec![];
     for clr in 16..=231 {
         let (r, g, b) = ansi2562rgb(clr, &low_rgb);
-        let n = rgb2number(r as f32, g as f32, b as f32) as i32;
-        ansi_table.insert(n, clr);
-        numbers.push(n);
+        ansi_table.insert(rgb2number(r as f32, g as f32, b as f32) as i32, clr);
+        numbers.push([r, g, b]);
     }
-    let n = rgb2number(r as f32, g as f32, b as f32) as i32;
-    let mut i = 0;
-    while i < numbers.len() - 1 {
-        let (s, b) = (numbers[i], numbers[i + 1]);
-        if s <= n && n <= b {
-            let s1 = (s - n).abs();
-            let b1 = (b - n).abs();
-            let closest;
-            if s1 < b1 {
-                closest = s;
-            } else {
-                closest = b;
+    let components = [r, g, b];
+    let mut res = vec![];
+    for comp_no in 0..components.len() {
+        let mut i = 0;
+        while i < numbers.len() - 1 {
+            let (s, b) = (numbers[i][comp_no], numbers[i + 1][comp_no]);
+            if s <= components[comp_no] && components[comp_no] <= b {
+                let avg = (( s as u16 + b as u16 ) / 2) as u8;
+                let closest;
+                if components[comp_no] < avg {
+                    closest = s;
+                }
+                else {
+                    closest = b;
+                }
+                res.push(closest);
+                break;
             }
-            return *ansi_table.get(&closest).unwrap();
+            i += 1;
         }
-        i += 1;
     }
-    return 0
+    return *ansi_table.get(&(rgb2number(res[0] as f32, res[1] as f32, res[2] as f32) as i32)).unwrap();
 }
 
 #[derive(clap::ValueEnum, Debug, Clone, PartialEq, Copy)]

@@ -260,7 +260,7 @@ impl ColorRepresentation {
             "C" => c, "Y" => y, "M" => m, "K" => k,
             "A" => self.a as f32,
             "D" => (self.r as u32 * ((256u32).pow(2)) + self.g as u32 * 256) as f32 + self.b,
-            "E" => rgb2ansi256(self.r as i8, self.g as i8, self.b as i8) as f32
+            "E" => rgb2ansi256(self.r as u8, self.g as u8, self.b as u8) as f32
         };
         let mut result = String::new();
         let mut is_fmt_char = false;
