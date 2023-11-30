@@ -1,4 +1,7 @@
-use std::{fmt::Display, io::{Write, Read}};
+use std::{
+    fmt::Display,
+    io::{Read, Write},
+};
 
 pub fn input(prompt: &str, reader: &mut std::io::Stdin, row: u32, col: u32) -> String {
     eprint!("\x1b[s");
@@ -27,7 +30,12 @@ pub fn input(prompt: &str, reader: &mut std::io::Stdin, row: u32, col: u32) -> S
     return data;
 }
 
-pub fn selection_menu<T: Display + Clone>(items: Vec<T>, reader: &mut std::io::Stdin, row: u32, col: u32) -> T {
+pub fn selection_menu<T: Display + Clone>(
+    items: Vec<T>,
+    reader: &mut std::io::Stdin,
+    row: u32,
+    col: u32,
+) -> T {
     eprint!("\x1b[s");
     let mut curr_selection = 0;
     loop {
@@ -47,8 +55,7 @@ pub fn selection_menu<T: Display + Clone>(items: Vec<T>, reader: &mut std::io::S
         if b[0] >= 48 && b[0] - 48 < items.len() as u8 {
             curr_selection = (b[0] - 48) as usize;
             break;
-        }
-        else if b[0] == b'j' {
+        } else if b[0] == b'j' {
             curr_selection += 1;
             if curr_selection > items.len() - 1 {
                 curr_selection = 0;
@@ -59,7 +66,8 @@ pub fn selection_menu<T: Display + Clone>(items: Vec<T>, reader: &mut std::io::S
             } else {
                 curr_selection -= 1;
             }
-        }    }
+        }
+    }
     //clear the list thing
     eprint!("\x1b[{};{}H\x1b[J", row, col);
     for _i in 0..items.len() {

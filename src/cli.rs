@@ -2,7 +2,6 @@ use clap::ColorChoice;
 use clap::Parser;
 
 use crate::ColorNameStandard;
-use crate::OutputType;
 use crate::SelectionType;
 
 #[derive(Debug, PartialEq, Clone, clap::ValueEnum)]
@@ -62,6 +61,7 @@ pub struct Args {
 #[derive(clap::Subcommand, Debug)]
 #[command(about = "Convert a color from one format to another")]
 pub enum ConvertSub {
+    #[command(aliases = ["to"])]
     Convert(ConvertArgs),
 }
 
