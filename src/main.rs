@@ -58,8 +58,15 @@ fn ansi256_renderer(
     square_count: u32,
     _step: f32,
 ) {
+    let mut reader = std::io::stdin();
+    let [_rows, cols] = query_window_area(&mut reader);
     eprint!("\x1b[0H");
-    render_ansi256(selected_item, square_count);
+    if cols < 145 {
+        eprintln!("\x1b[31mThis terminal is too small to display the ansi picker")
+    }
+    else {
+        render_ansi256(selected_item, square_count);
+    }
 }
 
 fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rgb_idx: usize) {
