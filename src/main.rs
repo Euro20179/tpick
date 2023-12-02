@@ -639,11 +639,24 @@ fn get_input(reader: &mut std::io::Stdin) -> String {
     String::from_utf8(buf[0..bytes_read].to_vec()).unwrap()
 }
 
-fn mix(mixing_args: &MixArgs, clr_std: &ColorNameStandard) -> ColorRepresentation {
+fn mix(mixing_args: &MixArgs, clr_std: &ColorNameStandard) -> Vec<ColorRepresentation> {
     let clr1 = ColorRepresentation::from_color(&mixing_args.color, clr_std).integer();
-    let clr2 = ColorRepresentation::from_color(&mixing_args.with, clr_std).integer();
-    let percentage = mixing_args.percentage;
-    return ColorRepresentation::from_integer(color_mix(clr1, clr2, percentage as f32 / 100.0));
+    let mut clrs = vec![];
+    for clr in &mixing_args.with {
+        let mut clr_and_percent = clr.split(":");
+        let clr_name = clr_and_percent.next().unwrap();
+        let percent = clr_and_percent
+            .next()
+            .unwrap_or("50")
+            .parse::<f32>()
+            .unwrap();
+        clrs.push(ColorRepresentation::from_integer(color_mix(
+            clr1,
+            ColorRepresentation::from_color(clr_name, clr_std).integer(),
+            percent / 100.0,
+        )))
+    }
+    return clrs;
 }
 
 fn convert(conversion: ConvertArgs, curr_color: &ColorRepresentation) {
@@ -757,12 +770,14 @@ fn main() {
     }
 
     if let Some(ConvertSub::Mix(mixing)) = args.action {
-        let color = mix(&mixing, &clr_std);
+        let colors = mix(&mixing, &clr_std);
         close_term(&tios_initial);
-        if mixing.preview {
-            println!("{}", color.make_square());
+        for color in colors {
+            if mixing.preview {
+                println!("{}", color.make_square());
+            }
+            println!("{}", program_state.output_type.render_output(&color, false));
         }
-        println!("{}", program_state.output_type.render_output(&color, false));
         return;
     };
 

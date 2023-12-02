@@ -72,9 +72,8 @@ pub enum ConvertSub {
 #[command(about = "Mix 2 colors")]
 pub struct MixArgs{
     pub color: String,
-    pub with: String,
-    pub percentage: u8,
-    #[arg(short, long, help = "preview the color")]
+    pub with: Vec<String>,
+    #[arg(short, long, help = "preview the color in a color square")]
     pub preview: bool
 }
 
