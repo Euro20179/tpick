@@ -515,6 +515,11 @@ pub fn color_mix(clr1: ColorInt, clr2: ColorInt, percent: Percentage) -> ColorIn
     );
 }
 
+pub fn invert(clr: ColorInt) -> ColorInt {
+    let (r, g, b) = number2rgb(clr);
+    return rgb2number(255.0 - r as f32, 255.0 - g as f32, 255.0 - b as f32);
+}
+
 pub fn name_to_hex<'a>(name: &str, color_name_standard: &'a ColorNameStandard) -> String {
     return color_name_standard.get_color(name);
 }

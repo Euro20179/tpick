@@ -56,25 +56,34 @@ pub struct Args {
     )]
     pub output_fmt: Option<String>,
     #[command(subcommand)]
-    pub action: Option<ConvertSub>,
+    pub action: Option<Actions>,
 }
 
 #[derive(clap::Subcommand, Debug)]
 #[command(about = "Convert a color from one format to another")]
-pub enum ConvertSub {
+pub enum Actions {
     #[command(aliases = ["to"])]
     Convert(ConvertArgs),
     #[command()]
-    Mix(MixArgs)
+    Mix(MixArgs),
+    #[command(about = "Inverts the given color")]
+    Invert(InvertArgs),
+}
+
+#[derive(Parser, Debug)]
+#[command()]
+pub struct InvertArgs {
+    #[arg(short, long, help = "preview the color in a color square")]
+    pub preview: bool,
 }
 
 #[derive(Parser, Debug)]
 #[command(about = "Mix 2 colors")]
-pub struct MixArgs{
+pub struct MixArgs {
     pub color: String,
     pub with: Vec<String>,
     #[arg(short, long, help = "preview the color in a color square")]
-    pub preview: bool
+    pub preview: bool,
 }
 
 #[derive(Parser, Debug)]

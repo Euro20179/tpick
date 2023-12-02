@@ -763,13 +763,23 @@ fn main() {
         vec![],
     );
 
-    if let Some(ConvertSub::Convert(conversion)) = args.action {
+    if let Some(Actions::Convert(conversion)) = args.action {
         convert(conversion, &program_state.curr_color);
         close_term(&tios_initial);
         return;
     }
 
-    if let Some(ConvertSub::Mix(mixing)) = args.action {
+    if let Some(Actions::Invert(i_args)) = &args.action {
+        let clr = ColorRepresentation::from_integer(invert(program_state.curr_color.integer()));
+        if i_args.preview {
+            println!("{}", clr.make_square());
+        }
+        println!("{}", program_state.output_type.render_output(&clr, false));
+        close_term(&tios_initial);
+        return;
+    }
+
+    if let Some(Actions::Mix(mixing)) = args.action {
         let colors = mix(&mixing, &clr_std);
         close_term(&tios_initial);
         for color in colors {
