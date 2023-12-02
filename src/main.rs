@@ -639,6 +639,13 @@ fn get_input(reader: &mut std::io::Stdin) -> String {
     String::from_utf8(buf[0..bytes_read].to_vec()).unwrap()
 }
 
+fn mix(mixing_args: &MixArgs, clr_std: &ColorNameStandard) -> ColorRepresentation {
+    let clr1 = ColorRepresentation::from_color(&mixing_args.color, clr_std).integer();
+    let clr2 = ColorRepresentation::from_color(&mixing_args.with, clr_std).integer();
+    let percentage = mixing_args.percentage;
+    return ColorRepresentation::from_integer(color_mix(clr1, clr2, percentage as f32 / 100.0));
+}
+
 fn convert(conversion: ConvertArgs, curr_color: &ColorRepresentation) {
     println!(
         "{}",
@@ -656,17 +663,14 @@ fn main() {
     let args = Args::parse();
 
     let mut starting_clr = args.color.unwrap_or("#ff0000".to_string());
+    let clr_std = args.clr_standard.unwrap_or(ColorNameStandard::W3C);
 
-    let requested_bg_color = ColorRepresentation::from_color(
-        &args.bg_clr.unwrap_or("#000000".to_string()),
-        &ColorNameStandard::W3C,
-    )
-    .tohex(false);
-    let requested_fg_color = ColorRepresentation::from_color(
-        &args.fg_clr.unwrap_or("#ffffff".to_string()),
-        &ColorNameStandard::W3C,
-    )
-    .tohex(false);
+    let requested_bg_color =
+        ColorRepresentation::from_color(&args.bg_clr.unwrap_or("#000000".to_string()), &clr_std)
+            .tohex(false);
+    let requested_fg_color =
+        ColorRepresentation::from_color(&args.fg_clr.unwrap_or("#ffffff".to_string()), &clr_std)
+            .tohex(false);
     let use_custom_colors = args.custom_colors;
 
     let requested_input_type = args.input_type.unwrap_or(SelectionType::HSL);
@@ -678,7 +682,6 @@ fn main() {
         let _ = reader.read_line(&mut starting_clr);
         starting_clr = starting_clr.trim().to_string();
     }
-    let clr_std = args.clr_standard.unwrap_or(ColorNameStandard::W3C);
 
     let output_type = match args.output_type.clone().unwrap_or(RequestedOutputType::HSL) {
         RequestedOutputType::HSL => OutputType::HSL,
@@ -747,11 +750,21 @@ fn main() {
         vec![],
     );
 
-    if let Some(ConvertSub::Convert(conversion)) = args.convert {
+    if let Some(ConvertSub::Convert(conversion)) = args.action {
         convert(conversion, &program_state.curr_color);
         close_term(&tios_initial);
         return;
     }
+
+    if let Some(ConvertSub::Mix(mixing)) = args.action {
+        let color = mix(&mixing, &clr_std);
+        close_term(&tios_initial);
+        if mixing.preview {
+            println!("{}", color.make_square());
+        }
+        println!("{}", program_state.output_type.render_output(&color, false));
+        return;
+    };
 
     let key_mappings = keymaps::init_keymaps(&program_state.config);
 

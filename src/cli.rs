@@ -56,7 +56,7 @@ pub struct Args {
     )]
     pub output_fmt: Option<String>,
     #[command(subcommand)]
-    pub convert: Option<ConvertSub>,
+    pub action: Option<ConvertSub>,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -64,6 +64,18 @@ pub struct Args {
 pub enum ConvertSub {
     #[command(aliases = ["to"])]
     Convert(ConvertArgs),
+    #[command()]
+    Mix(MixArgs)
+}
+
+#[derive(Parser, Debug)]
+#[command(about = "Mix 2 colors")]
+pub struct MixArgs{
+    pub color: String,
+    pub with: String,
+    pub percentage: u8,
+    #[arg(short, long, help = "preview the color")]
+    pub preview: bool
 }
 
 #[derive(Parser, Debug)]
