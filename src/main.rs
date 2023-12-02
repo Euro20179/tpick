@@ -247,12 +247,12 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
         &program_state.selection_type,
         program_state.enable_alpha,
     );
-    eprint!("{}", program_state.curr_color.make_square());
+    eprintln!("{}", program_state.curr_color.make_square());
     for clr in &program_state.comparison_colors {
-        eprint!("{}", clr.make_square());
+        eprintln!("{}", clr.make_square());
     }
     eprint!(
-        "\x1b[K {}",
+        "\x1b[K{}",
         program_state
             .output_type
             .render_output(&program_state.curr_color, program_state.enable_alpha)

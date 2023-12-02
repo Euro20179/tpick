@@ -2,6 +2,10 @@ use std::collections::HashMap;
 
 use crate::{hashmap, read_ansi_color};
 
+pub type ColorInt = u32;
+///Number from 0-1
+type Percentage = f32;
+
 pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
     s /= 100.0;
     l /= 100.0;
@@ -136,6 +140,13 @@ pub fn rgb2number(r: f32, g: f32, b: f32) -> u32 {
     (r as u32 * ((256u32).pow(2)) + g as u32 * 256) as u32 + b as u32
 }
 
+pub fn number2rgb(number: ColorInt) -> (u8, u8, u8) {
+    let b = number % 256;
+    let g = ((number - b) / 256) % 256;
+    let r = ((number - b) / 256u32.pow(2)) - g / 256;
+    return (r as u8, g as u8, b as u8);
+}
+
 pub fn rgb2ansi256(r: u8, g: u8, b: u8) -> u8 {
     let low_rgb: Vec<String> = (0..16).map(|_| "#000000".to_owned()).collect();
     let mut ansi_table: HashMap<i32, u8> = HashMap::new();
@@ -152,12 +163,11 @@ pub fn rgb2ansi256(r: u8, g: u8, b: u8) -> u8 {
         while i < numbers.len() - 1 {
             let (s, b) = (numbers[i][comp_no], numbers[i + 1][comp_no]);
             if s <= components[comp_no] && components[comp_no] <= b {
-                let avg = (( s as u16 + b as u16 ) / 2) as u8;
+                let avg = ((s as u16 + b as u16) / 2) as u8;
                 let closest;
                 if components[comp_no] < avg {
                     closest = s;
-                }
-                else {
+                } else {
                     closest = b;
                 }
                 res.push(closest);
@@ -166,7 +176,9 @@ pub fn rgb2ansi256(r: u8, g: u8, b: u8) -> u8 {
             i += 1;
         }
     }
-    return *ansi_table.get(&(rgb2number(res[0] as f32, res[1] as f32, res[2] as f32) as i32)).unwrap();
+    return *ansi_table
+        .get(&(rgb2number(res[0] as f32, res[1] as f32, res[2] as f32) as i32))
+        .unwrap();
 }
 
 #[derive(clap::ValueEnum, Debug, Clone, PartialEq, Copy)]
@@ -490,6 +502,17 @@ impl ColorNameStandard {
             _ => [0x80, 0x00, 0x80],
         }
     }
+}
+
+pub fn color_mix(clr1: ColorInt, clr2: ColorInt, percent: Percentage) -> ColorInt {
+    let (r1, g1, b1) = number2rgb(clr1);
+    let (r2, g2, b2) = number2rgb(clr2);
+    let clr1_p = 1.0 - percent;
+    return rgb2number(
+        r1 as f32 * clr1_p + r2 as f32 * percent,
+        g1 as f32 * clr1_p + g2 as f32 * percent,
+        b1 as f32 * clr1_p + b2 as f32 * percent,
+    );
 }
 
 pub fn name_to_hex<'a>(name: &str, color_name_standard: &'a ColorNameStandard) -> String {

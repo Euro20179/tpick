@@ -2,12 +2,15 @@ use std::fmt::Display;
 use std::fmt::LowerHex;
 use std::str::Split;
 
+use crate::color_conversions::ColorInt;
 use crate::color_conversions::cymk2rgb;
 use crate::color_conversions::hex62rgb;
 use crate::color_conversions::name_to_hex;
+use crate::color_conversions::number2rgb;
 use crate::color_conversions::rgb2ansi256;
 use crate::color_conversions::rgb2cymk;
 use crate::color_conversions::ColorNameStandard;
+use crate::color_conversions::rgb2number;
 use crate::hsl2rgb;
 use crate::rgb2hsl;
 use crate::OutputType;
@@ -39,6 +42,10 @@ pub struct ColorRepresentation {
 }
 
 impl ColorRepresentation {
+    pub fn from_integer(clr: ColorInt) -> ColorRepresentation {
+        let (r, g, b) = number2rgb(clr);
+        return ColorRepresentation { r: r as f32, g: g as f32, b: b as f32, a: 255 };
+    }
     pub fn from_color(clr: &str, clr_name_standard: &ColorNameStandard) -> ColorRepresentation {
         let r: f32;
         let g: f32;
@@ -128,6 +135,10 @@ impl ColorRepresentation {
             "\x1b[38;2;{}m████████\n████████\n████████\x1b[0m",
             self.toansi(false)
         )
+    }
+
+    pub fn integer(&self) -> ColorInt {
+        return rgb2number(self.r, self.g, self.b);
     }
 
     pub fn add_rgba(&mut self, rgba: [f32; 4]) {
