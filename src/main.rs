@@ -65,8 +65,7 @@ fn ansi256_renderer(
     eprint!("\x1b[0H");
     if cols < 97 {
         eprintln!("\x1b[31mThis terminal is too small to display the ansi picker")
-    }
-    else {
+    } else {
         render_ansi256(selected_item, square_count);
     }
 }
@@ -248,10 +247,10 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
         &program_state.selection_type,
         program_state.enable_alpha,
     );
-    eprint!(
-        "\x1b[38;2;{}m████████\n████████\n████████\x1b[0m",
-        program_state.curr_color.toansi(false)
-    );
+    eprint!("{}", program_state.curr_color.make_square());
+    for clr in &program_state.comparison_colors {
+        eprint!("{}", clr.make_square());
+    }
     eprint!(
         "\x1b[K {}",
         program_state
@@ -281,6 +280,7 @@ struct ProgramState {
     output_idx: usize,
     output_order: Vec<OutputType>,
     config: Config,
+    comparison_colors: Vec<ColorRepresentation>,
 }
 
 impl ProgramState {
@@ -291,6 +291,7 @@ impl ProgramState {
         clr_std: ColorNameStandard,
         output_order: Vec<OutputType>,
         cfg: Config,
+        comparison_colors: Vec<ColorRepresentation>,
     ) -> ProgramState {
         ProgramState {
             selected_item: 0,
@@ -302,6 +303,7 @@ impl ProgramState {
             output_idx: 0,
             output_order,
             config: cfg,
+            comparison_colors,
         }
     }
 
@@ -683,9 +685,15 @@ fn main() {
         RequestedOutputType::RGB => OutputType::RGB,
         RequestedOutputType::HEX => OutputType::HEX,
         RequestedOutputType::CYMK => OutputType::CYMK,
-        RequestedOutputType::CUSTOM => OutputType::CUSTOM(args.output_fmt.unwrap_or("%D".to_string()).to_owned()),
+        RequestedOutputType::CUSTOM => {
+            OutputType::CUSTOM(args.output_fmt.unwrap_or("%D".to_string()).to_owned())
+        }
     };
-    let used_custom_output_type = if let Some(..) = args.output_type { true } else { false };
+    let used_custom_output_type = if let Some(..) = args.output_type {
+        true
+    } else {
+        false
+    };
     let (tios_initial, _tios) = setup_term();
 
     if args.list_colors {
@@ -727,11 +735,16 @@ fn main() {
 
     let mut program_state = ProgramState::new(
         requested_input_type,
-        if used_custom_output_type { output_type } else { output_cycle[0].clone() },
+        if used_custom_output_type {
+            output_type
+        } else {
+            output_cycle[0].clone()
+        },
         &starting_clr,
         clr_std,
         output_cycle,
         cfg.to_owned(),
+        vec![],
     );
 
     if let Some(ConvertSub::Convert(conversion)) = args.convert {

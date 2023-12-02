@@ -123,6 +123,13 @@ impl ColorRepresentation {
         ColorRepresentation { r, g, b, a }
     }
 
+    pub fn make_square(&self) -> String {
+        format!(
+            "\x1b[38;2;{}m████████\n████████\n████████\x1b[0m",
+            self.toansi(false)
+        )
+    }
+
     pub fn add_rgba(&mut self, rgba: [f32; 4]) {
         self.modify_rgb((self.r + rgba[0], self.g + rgba[1], self.b + rgba[2]));
         self.modify_a((self.a + rgba[3] as u8) as i32);

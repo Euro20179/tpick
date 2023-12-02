@@ -84,6 +84,7 @@ See the [example config](./example-config.toml)
   - [x] CYMK
   - [x] ANSI 256 color selection pannel
 - [x] Ability to input number for slider
+- [ ] Custom output formats that can be used with `convert/-o`
 - [x] Swap between different outputs
   - [x] Let user pick from some kind of menu instead of cycling (or both)
   - [x] Option to display all outputs at once
