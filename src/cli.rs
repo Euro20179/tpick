@@ -34,6 +34,8 @@ pub struct Args {
     pub bg_clr: Option<String>,
     #[arg(short, long)]
     pub fg_clr: Option<String>,
+    #[arg(long = "cmp", help = "These colors will show up to compare against (seperate each color with a space)")]
+    pub compare: Option<String>,
     #[arg(
         short,
         long,

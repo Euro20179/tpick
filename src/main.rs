@@ -749,6 +749,13 @@ fn main() {
 
     let output_cycle = cycle.unwrap();
 
+    let mut comparison_colors = vec![];
+    if let Some(clrs) = args.compare {
+        for clr in clrs.split(" ") {
+            comparison_colors.push(ColorRepresentation::from_color(&clr, &clr_std));
+        }
+    }
+
     let mut program_state = ProgramState::new(
         requested_input_type,
         if used_custom_output_type {
@@ -760,7 +767,7 @@ fn main() {
         clr_std,
         output_cycle,
         cfg.to_owned(),
-        vec![],
+        comparison_colors,
     );
 
     if let Some(Actions::Convert(conversion)) = args.action {
