@@ -504,7 +504,12 @@ impl ColorNameStandard {
     }
 }
 
-pub fn color_mix(clr1: ColorInt, clr2: ColorInt, percent: Percentage) -> ColorInt {
+pub enum MixSpace {
+    RGB,
+    HSL,
+}
+
+fn color_mix_rgb(clr1: ColorInt, clr2: ColorInt, percent: Percentage) -> ColorInt {
     let (r1, g1, b1) = number2rgb(clr1);
     let (r2, g2, b2) = number2rgb(clr2);
     let clr1_p = 1.0 - percent;
@@ -513,6 +518,28 @@ pub fn color_mix(clr1: ColorInt, clr2: ColorInt, percent: Percentage) -> ColorIn
         g1 as f32 * clr1_p + g2 as f32 * percent,
         b1 as f32 * clr1_p + b2 as f32 * percent,
     );
+}
+
+fn color_mix_hsl(clr1: ColorInt, clr2: ColorInt, percent: Percentage) -> ColorInt {
+    let (r1, g1, b1) = number2rgb(clr1);
+    let (h1, s1, l1) = rgb2hsl(r1 as f32, g1 as f32, b1 as f32);
+    let (r2, g2, b2) = number2rgb(clr2);
+    let (h2, s2, l2) = rgb2hsl(r2 as f32, g2 as f32, b2 as f32);
+    let clr1_p = 1.0 - percent;
+    let (r, g, b) = hsl2rgb(h1 * clr1_p + h2 * percent, s1 * clr1_p + s2 * percent, l1 * clr1_p + l2 * percent);
+    return rgb2number(r, g, b);
+}
+
+pub fn color_mix(
+    clr1: ColorInt,
+    clr2: ColorInt,
+    percent: Percentage,
+    mix_space: &MixSpace,
+) -> ColorInt {
+    match mix_space {
+        MixSpace::RGB => color_mix_rgb(clr1, clr2, percent),
+        MixSpace::HSL => color_mix_hsl(clr1, clr2, percent)
+    }
 }
 
 pub fn invert(clr: ColorInt) -> ColorInt {

@@ -5,6 +5,8 @@ mod color_conversions;
 mod color_representation;
 mod keymaps;
 mod ui;
+#[macro_use]
+mod console;
 
 use clap::Parser;
 use cli::*;
@@ -231,6 +233,51 @@ fn render_alpha_display(alpha: u8, square_count: u32, step: f32) {
     );
 }
 
+fn render_comparison_colors(program_state: &ProgramState) {
+    for clr in vec![program_state.curr_color]
+        .iter()
+        .chain(program_state.comparison_colors.iter())
+    {
+        eprintln!("{}", clr.make_square());
+    }
+}
+
+fn render_mix_colors(program_state: &ProgramState) {
+    let sq_height = 3;
+    //this section goes up to where the comparison colors section is
+    let sq_count = program_state.comparison_colors.len() + 1;
+    eprint!("\x1b[{}A", sq_count * sq_height);
+    //go to the right
+    eprint!("\x1b[16C");
+    //end section
+    
+    let mix_space = if let SelectionType::HSL = program_state.selection_type {
+        MixSpace::HSL
+    } else {
+        MixSpace::RGB
+    };
+
+    for clr in vec![program_state.curr_color]
+        .iter()
+        .chain(program_state.mix_colors.iter())
+    {
+        //FIXME: mixed_color should take in a mode such as rgb, or hsl, to mix differently
+        //depending on the mode
+        let mixed_color = ColorRepresentation::from_integer(color_mix(
+            clr.integer(),
+            program_state.curr_color.integer(),
+            0.2,
+            &mix_space
+        ));
+        let output = program_state.output_type.render_output(&mixed_color, false);
+        let o_width = output.len();
+        eprint!("{}", output);
+        c_control! { down 1, left o_width};
+        eprint!("\x1b[38;2;{}m████████\x1b[0m", mixed_color.toansi(false));
+        c_control! { up, right };
+    }
+}
+
 fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
     render_sliders(
         &program_state.curr_color,
@@ -247,10 +294,10 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
         &program_state.selection_type,
         program_state.enable_alpha,
     );
-    eprintln!("{}", program_state.curr_color.make_square());
-    for clr in &program_state.comparison_colors {
-        eprintln!("{}", clr.make_square());
-    }
+    render_comparison_colors(program_state);
+    eprint!("\x1b[s");
+    render_mix_colors(program_state);
+    eprint!("\x1b[u");
     eprint!(
         "\x1b[K{}",
         program_state
@@ -281,6 +328,7 @@ struct ProgramState {
     output_order: Vec<OutputType>,
     config: Config,
     comparison_colors: Vec<ColorRepresentation>,
+    mix_colors: Vec<ColorRepresentation>,
 }
 
 impl ProgramState {
@@ -292,6 +340,7 @@ impl ProgramState {
         output_order: Vec<OutputType>,
         cfg: Config,
         comparison_colors: Vec<ColorRepresentation>,
+        mix_colors: Vec<ColorRepresentation>,
     ) -> ProgramState {
         ProgramState {
             selected_item: 0,
@@ -304,6 +353,7 @@ impl ProgramState {
             output_order,
             config: cfg,
             comparison_colors,
+            mix_colors,
         }
     }
 
@@ -654,6 +704,7 @@ fn mix(mixing_args: &MixArgs, clr_std: &ColorNameStandard) -> Vec<ColorRepresent
             clr1,
             ColorRepresentation::from_color(clr_name, clr_std).integer(),
             percent / 100.0,
+            &MixSpace::RGB
         )))
     }
     return clrs;
@@ -756,6 +807,13 @@ fn main() {
         }
     }
 
+    let mut mix_colors = vec![];
+    if let Some(clrs) = args.mix_colors {
+        for clr in clrs.split(" ") {
+            mix_colors.push(ColorRepresentation::from_color(&clr, &clr_std));
+        }
+    }
+
     let mut program_state = ProgramState::new(
         requested_input_type,
         if used_custom_output_type {
@@ -768,6 +826,7 @@ fn main() {
         output_cycle,
         cfg.to_owned(),
         comparison_colors,
+        mix_colors,
     );
 
     if let Some(Actions::Convert(conversion)) = args.action {

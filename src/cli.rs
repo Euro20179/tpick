@@ -36,6 +36,8 @@ pub struct Args {
     pub fg_clr: Option<String>,
     #[arg(long = "cmp", help = "These colors will show up to compare against (seperate each color with a space)")]
     pub compare: Option<String>,
+    #[arg(short, long, help = "colors to mix with and display")]
+    pub mix_colors: Option<String>,
     #[arg(
         short,
         long,
