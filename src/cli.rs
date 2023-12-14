@@ -9,7 +9,6 @@ pub enum RequestedOutputType {
     HSL,
     RGB,
     HEX,
-    CYMK,
     CUSTOM,
 }
 

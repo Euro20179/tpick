@@ -3,12 +3,10 @@ use std::fmt::LowerHex;
 use std::str::Split;
 
 use crate::color_conversions::ColorInt;
-use crate::color_conversions::cymk2rgb;
 use crate::color_conversions::hex62rgb;
 use crate::color_conversions::name_to_hex;
 use crate::color_conversions::number2rgb;
 use crate::color_conversions::rgb2ansi256;
-use crate::color_conversions::rgb2cymk;
 use crate::color_conversions::ColorNameStandard;
 use crate::color_conversions::rgb2number;
 use crate::hsl2rgb;
@@ -84,15 +82,7 @@ impl ColorRepresentation {
             let s: f32 = get_next(&mut items);
             let l: f32 = get_next(&mut items);
             (r, g, b) = hsl2rgb(h, s, l);
-        } else if clr.starts_with("cymk") {
-            let mut items = clr[5..clr.len() - 1].split(",");
-            let c: f32 = get_next(&mut items);
-            let y: f32 = get_next(&mut items);
-            let m: f32 = get_next(&mut items);
-            let k: f32 = get_next(&mut items);
-            (r, g, b) = cymk2rgb(c, y, m, k);
-        }
-        //#RGB or #RGBA or #RRGGBB or #RRGGBBAA
+        }        //#RGB or #RGBA or #RRGGBB or #RRGGBBAA
         else if clr.starts_with("#")
             && (clr.len() == 4 || clr.len() == 5 || clr.len() == 7 || clr.len() == 9)
         {
@@ -152,18 +142,8 @@ impl ColorRepresentation {
         self.modify_a(self.a as i32 + hsla[3] as i32);
     }
 
-    pub fn add_cymka(&mut self, cymka: [f32; 5]) {
-        let (c, y, m, k) = self.cymk();
-        self.modify_cymk((c + cymka[0], y + cymka[1], m + cymka[2], k + cymka[3]));
-        self.modify_a(self.a as i32 + cymka[4] as i32);
-    }
-
     pub fn hsl(&self) -> (f32, f32, f32) {
         return rgb2hsl(self.r, self.g, self.b);
-    }
-
-    pub fn cymk(&self) -> (f32, f32, f32, f32) {
-        return rgb2cymk(self.r, self.g, self.b);
     }
 
     pub fn rgb(&self) -> (f32, f32, f32) {
@@ -189,21 +169,12 @@ impl ColorRepresentation {
         (self.r, self.g, self.b) = hsl2rgb(new_value.0, new_value.1, new_value.2);
     }
 
-    pub fn modify_cymk(&mut self, mut new_value: (f32, f32, f32, f32)) {
-        new_value.0 = clamp_with_bel!(0.0, new_value.0, 100.0);
-        new_value.1 = clamp_with_bel!(0.0, new_value.1, 100.0);
-        new_value.2 = clamp_with_bel!(0.0, new_value.2, 100.0);
-        new_value.3 = clamp_with_bel!(0.0, new_value.3, 100.0);
-        (self.r, self.g, self.b) = cymk2rgb(new_value.0, new_value.1, new_value.2, new_value.3);
-    }
-
     pub fn get_output_clr(&self, output_type: &OutputType, enable_alpha: bool) -> String {
         return match output_type {
             OutputType::HSL => self.tohsl(enable_alpha),
             OutputType::ANSI => self.toansi(false),
             OutputType::RGB => self.torgb(enable_alpha),
             OutputType::HEX => self.tohex(enable_alpha),
-            OutputType::CYMK => self.tocymk(enable_alpha),
             OutputType::CUSTOM(fmt) => self.tofmt(fmt),
             OutputType::ALL => {
                 format!(
@@ -236,13 +207,6 @@ impl ColorRepresentation {
                     format!("hsl({})", self.tohsl(false))
                 }
             }
-            OutputType::CYMK => {
-                if enable_alpha {
-                    format!("cymka({})", self.tocymk(enable_alpha))
-                } else {
-                    format!("cymk({})", self.tocymk(false))
-                }
-            }
             OutputType::HEX => format!("#{}", self.tohex(enable_alpha)),
             OutputType::ANSI => {
                 format!("\\x1b[38;2;{}m", self.toansi(false))
@@ -271,11 +235,9 @@ impl ColorRepresentation {
             }
         }
         let (h, s, l) = self.hsl();
-        let (c, y, m, k) = self.cymk();
         let ch_to_value = hashmap! {
             "R" => self.r, "G" => self.g, "B" => self.b,
             "H" => h, "S" => s, "L" => l,
-            "C" => c, "Y" => y, "M" => m, "K" => k,
             "A" => self.a as f32,
             "D" => (self.r as u32 * ((256u32).pow(2)) + self.g as u32 * 256) as f32 + self.b,
             "E" => rgb2ansi256(self.r as u8, self.g as u8, self.b as u8) as f32
@@ -342,16 +304,6 @@ impl ColorRepresentation {
             "{:02x}{:02x}{:02x}",
             self.r as u8, self.g as u8, self.b as u8
         );
-    }
-
-    pub fn tocymk(&self, enable_alpha: bool) -> String {
-        let (c, y, m, k) = self.cymk();
-        if enable_alpha {
-            return format!("{:.2}, {:.2}, {:.2}, {:.2}, {:.2}", c, y, m, k, self.a);
-        }
-        else {
-            return format!("{:.2}, {:.2}, {:.2}, {:.2}", c, y, m, k)
-        }
     }
 
     pub fn toansi(&self, _enable_alpha: bool) -> String {

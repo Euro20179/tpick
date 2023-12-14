@@ -81,7 +81,7 @@ See the [example config](./example-config.toml)
 - [x] Swap between different selections
   - [x] HSL
   - [x] RGB
-  - [x] CYMK
+  - [x] <del>CYMK</del> not really useful
   - [x] ANSI 256 color selection pannel
 - [x] Ability to input number for slider
 - [ ] Custom output formats that can be used with `convert/-o`

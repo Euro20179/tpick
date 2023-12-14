@@ -46,28 +46,6 @@ pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
     return ((r * 255.0), (g * 255.0), (b * 255.0));
 }
 
-pub fn rgb2cymk(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32, f32) {
-    r /= 255.0;
-    g /= 255.0;
-    b /= 255.0;
-    let k = 1.0 - max!(max!(r, g), b);
-    let c = (1.0 - r - k) / (1.0 - k);
-    let m = (1.0 - g - k) / (1.0 - k);
-    let y = (1.0 - b - k) / (1.0 - k);
-    return (c * 100.0, y * 100.0, m * 100.0, k * 100.0);
-}
-
-pub fn cymk2rgb(mut c: f32, mut y: f32, mut m: f32, mut k: f32) -> (f32, f32, f32) {
-    c /= 100.0;
-    y /= 100.0;
-    m /= 100.0;
-    k /= 100.0;
-    let r = 255.0 * (1.0 - c) * (1.0 - k);
-    let g = 255.0 * (1.0 - m) * (1.0 - k);
-    let b = 255.0 * (1.0 - y) * (1.0 - k);
-    return (r, g, b);
-}
-
 pub fn rgb2hsl(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32) {
     r /= 255.0;
     g /= 255.0;

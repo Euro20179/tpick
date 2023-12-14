@@ -187,10 +187,6 @@ pub fn init_keymaps(
             SelectionType::HSL => SelectionType::RGB,
             SelectionType::RGB => {
                 cls();
-                SelectionType::CYMK
-            }
-            SelectionType::CYMK => {
-                cls();
                 SelectionType::ANSI256
             }
             SelectionType::ANSI256 => {
@@ -248,7 +244,7 @@ pub fn init_keymaps(
         } else if how_to_select == "select output cycle" {
             let outputs = &program_state.config.outputs.clone().unwrap_or(vec![hashmap!(
                     "default".to_string() => ConfigOutput {
-                        order: vec!["hsl".to_string(), "rgb".to_string(), "hex".to_string(), "cymk".to_string(), "ansi".to_owned()]
+                        order: vec!["hsl".to_string(), "rgb".to_string(), "hex".to_string(), "ansi".to_owned()]
                     }
             )])[0];
             let items: Vec<&String> = outputs.keys().collect();
@@ -262,7 +258,6 @@ pub fn init_keymaps(
                     OutputType::HSL,
                     OutputType::RGB,
                     OutputType::HEX,
-                    OutputType::CYMK,
                     OutputType::ANSI,
                 ],
                 &mut reader,

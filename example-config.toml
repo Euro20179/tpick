@@ -30,7 +30,7 @@ toggle-alpha = "a",
 
 [[outputs]]
     [outputs.default]
-    order = ["hsl", "rgb", "hex", "cymk", "ansi"]
+    order = ["hsl", "rgb", "hex", "ansi"]
 
     [order.my_order]
     order = ["hsl", "RED: %R, GREEN: %G, BLUE: %B"]

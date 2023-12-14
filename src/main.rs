@@ -149,48 +149,6 @@ fn hsl_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_coun
     }
 }
 
-fn render_cymk(curr_color: &ColorRepresentation, square_count: u32, step: f32, cymk_idx: usize) {
-    //works similarly to render_rgb
-    let (c, y, m, k) = curr_color.cymk();
-    let mut colors = [c, y, m, k];
-    let modifier_idx = cymk_idx;
-    colors[modifier_idx] = 0.0;
-    let label = ['C', 'Y', 'M', 'K'][cymk_idx];
-    let modifier_multiplier = [100.0, 100.0, 100.0, 100.0][cymk_idx];
-    eprint!("{}", label);
-    let mut color = ColorRepresentation::from_color(
-        &format!(
-            "cymk({},{},{}, {})",
-            colors[0], colors[1], colors[2], colors[3]
-        ),
-        &ColorNameStandard::W3C,
-    );
-    for i in 0..square_count {
-        eprint!("\x1b[38;2;{}m█", color.toansi(false));
-        colors[modifier_idx] = (i as f32 / square_count as f32) * modifier_multiplier;
-        color.modify_cymk((colors[0], colors[1], colors[2], colors[3]));
-    }
-    eprintln!("\x1b[0m");
-    render_carrot_on_current_line(
-        ([c, y, m, k][modifier_idx] / modifier_multiplier * 360.0 / step).floor() as usize + 1,
-    );
-}
-
-fn cymk_renderer(
-    curr_color: &ColorRepresentation,
-    selected_item: u8,
-    square_count: u32,
-    step: f32,
-) {
-    for i in 0..=3 {
-        eprint!("\x1b[{};0H", i * 2 + 1);
-        if selected_item == i {
-            eprint!("\x1b[32m");
-        }
-        render_cymk(curr_color, square_count, step, i as usize);
-    }
-}
-
 fn render_a(square_count: u32) {
     eprint!("A");
     let mut sat_color_rep = ColorRepresentation::from_color("#000000", &ColorNameStandard::W3C);
@@ -286,7 +244,6 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
             SelectionType::HSL => hsl_renderer,
             SelectionType::RGB => rgb_renderer,
             SelectionType::ANSI256 => ansi256_renderer,
-            SelectionType::CYMK => cymk_renderer,
         },
         square_count,
         step,
@@ -367,7 +324,6 @@ enum SelectionType {
     HSL,
     RGB,
     ANSI256,
-    CYMK,
 }
 
 impl SelectionType {
@@ -376,7 +332,6 @@ impl SelectionType {
             SelectionType::HSL => ['H', 'S', 'L', 'A'][selected_item as usize],
             SelectionType::ANSI256 => 'e',
             Self::RGB => ['R', 'G', 'B', 'A'][selected_item as usize],
-            Self::CYMK => ['C', 'Y', 'M', 'K', 'A'][selected_item as usize],
         }
     }
 
@@ -385,13 +340,11 @@ impl SelectionType {
             SelectionType::HSL => vec![359.0, 100.0, 100.0, 255.0],
             SelectionType::RGB => vec![255.0, 255.0, 255.0, 255.0],
             SelectionType::ANSI256 => vec![255.0],
-            SelectionType::CYMK => vec![100.0, 100.0, 100.0, 100.0, 255.0],
         }
     }
 
     fn increments(&self) -> Vec<f32> {
         match self {
-            SelectionType::CYMK => vec![1.0, 1.0, 1.0, 1.0, 1.0],
             Self::HSL | Self::RGB => vec![1.0, 1.0, 1.0, 1.0],
             Self::ANSI256 => vec![1.0],
         }
@@ -407,10 +360,6 @@ impl SelectionType {
             Self::HSL => {
                 let (h, s, l) = program_state.curr_color.hsl();
                 vec![h, s, l, program_state.curr_color.a as f32]
-            }
-            Self::CYMK => {
-                let (c, y, m, k) = program_state.curr_color.cymk();
-                vec![c, y, m, k, program_state.curr_color.a as f32]
             }
         }
     }
@@ -448,18 +397,6 @@ impl SelectionType {
                     modifiables[3] - program_state.curr_color.a as f32,
                 ]);
             }
-            SelectionType::CYMK => {
-                let (c, y, m, k) = program_state.curr_color.cymk();
-                let mut modifiables = [c, y, m, k, program_state.curr_color.a as f32];
-                modifiables[selected_item as usize] = new_value;
-                program_state.curr_color.add_cymka([
-                    modifiables[0] - c,
-                    modifiables[1] - y,
-                    modifiables[2] - m,
-                    modifiables[3] - k,
-                    modifiables[4] - program_state.curr_color.a as f32,
-                ]);
-            }
             Self::ANSI256 => {
                 let mut reader = std::io::stdin();
                 let low_rgb = get_ansi_30_and_90(&mut reader);
@@ -479,7 +416,6 @@ enum OutputType {
     RGB,
     HEX,
     ANSI,
-    CYMK,
     CUSTOM(String),
     ALL,
 }
@@ -495,7 +431,6 @@ impl Display for OutputType {
                 RGB => "RGB",
                 HEX => "HEX",
                 ANSI => "ANSI",
-                CYMK => "CYMK",
                 CUSTOM(n) => n,
                 ALL => "ALL",
             }
@@ -516,7 +451,6 @@ impl OutputType {
             "hsl" => Self::HSL,
             "rgb" => Self::RGB,
             "hex" => Self::HEX,
-            "cymk" => Self::CYMK,
             "ansi" => Self::ANSI,
             "all" => Self::ALL,
             _ => Self::CUSTOM(data.to_string()),
@@ -557,7 +491,6 @@ impl OutputType {
             OutputType::HSL,
             OutputType::RGB,
             OutputType::HEX,
-            OutputType::CYMK,
             OutputType::ANSI,
         ]
     }
@@ -745,7 +678,6 @@ fn main() {
         RequestedOutputType::HSL => OutputType::HSL,
         RequestedOutputType::RGB => OutputType::RGB,
         RequestedOutputType::HEX => OutputType::HEX,
-        RequestedOutputType::CYMK => OutputType::CYMK,
         RequestedOutputType::CUSTOM => {
             OutputType::CUSTOM(args.output_fmt.unwrap_or("%D".to_string()).to_owned())
         }
