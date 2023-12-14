@@ -238,7 +238,8 @@ fn render_comparison_colors(program_state: &ProgramState) {
         .iter()
         .chain(program_state.comparison_colors.iter())
     {
-        eprintln!("{}", clr.make_square());
+        eprint!("{}", clr.make_square());
+        eprintln!("{}", program_state.output_type.render_output(clr, program_state.enable_alpha))
     }
 }
 
@@ -248,7 +249,7 @@ fn render_mix_colors(program_state: &ProgramState) {
     let sq_count = program_state.comparison_colors.len() + 1;
     eprint!("\x1b[{}A", sq_count * sq_height);
     //go to the right
-    eprint!("\x1b[16C");
+    eprint!("\x1b[{}C", program_state.output_type.render_output(&program_state.curr_color, program_state.enable_alpha).len() + 9);
     //end section
     
     let mix_space = if let SelectionType::HSL = program_state.selection_type {
@@ -297,12 +298,6 @@ fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
     eprint!("\x1b[s");
     render_mix_colors(program_state);
     eprint!("\x1b[u");
-    eprint!(
-        "\x1b[K{}",
-        program_state
-            .output_type
-            .render_output(&program_state.curr_color, program_state.enable_alpha)
-    );
 }
 
 #[derive(serde::Deserialize, Clone)]

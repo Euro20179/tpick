@@ -226,6 +226,7 @@ pub fn init_keymaps(
     });
 
     insert("change-output".to_string(), |program_state, _key| {
+        cls();
         program_state.next_output();
         None
     });
