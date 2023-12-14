@@ -132,7 +132,7 @@ impl ColorRepresentation {
 
     pub fn make_square(&self) -> String {
         format!(
-            "\x1b[38;2;{}m████████\n████████\n████████\x1b[0m",
+            "\x1b[38;2;{}m████████\x1b[0m",
             self.toansi(false)
         )
     }

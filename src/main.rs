@@ -243,7 +243,7 @@ fn render_comparison_colors(program_state: &ProgramState) {
 }
 
 fn render_mix_colors(program_state: &ProgramState) {
-    let sq_height = 3;
+    let sq_height = 1;
     //this section goes up to where the comparison colors section is
     let sq_count = program_state.comparison_colors.len() + 1;
     eprint!("\x1b[{}A", sq_count * sq_height);
@@ -266,15 +266,14 @@ fn render_mix_colors(program_state: &ProgramState) {
         let mixed_color = ColorRepresentation::from_integer(color_mix(
             clr.integer(),
             program_state.curr_color.integer(),
-            0.2,
+            0.5,
             &mix_space
         ));
         let output = program_state.output_type.render_output(&mixed_color, false);
         let o_width = output.len();
-        eprint!("{}", output);
-        c_control! { down 1, left o_width};
         eprint!("\x1b[38;2;{}m████████\x1b[0m", mixed_color.toansi(false));
-        c_control! { up, right };
+        eprint!("{}", output);
+        c_control! { down 1, left o_width +  8};
     }
 }
 
