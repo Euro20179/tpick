@@ -30,30 +30,36 @@ fn cls() {
 }
 
 fn render_ansi256(selected_item: u8, _square_count: u32) {
-    eprint!(" ");
+    eprint!(" "); // Clear the console
+
     for low_nr in 0..16 {
-        eprint!("\x1b[38;5;{}m{:<3} ", low_nr, low_nr);
+        eprint!("\x1b[38;5;{}m{:<3} ", low_nr, low_nr); // Print 16 rows of colors
     }
     eprintln!();
+
     for i in 0..2 {
         for x in 0..6 {
-            eprint!(" ");
+            eprint!(" "); // Newline between grids
+
             for y in 0..6 {
                 for z in (i * 3)..(3 + i * 3) {
-                    let clr = (x + 16) + (6 * y) + (36 * z);
-                    eprint!("\x1b[38;5;{}m{:<3} ", clr, clr);
+                    let clr = (x + 16) + (6 * y) + (36 * z); // Calculate color index
+                    eprint!("\x1b[38;5;{}m{:<3} ", clr, clr); // Print each color in the current grid square
                 }
             }
-            eprintln!();
+            eprintln!(); // Newline between rows within a grid
         }
     }
-    eprint!(" ");
-    for grey_nr in 232..256 {
+
+    eprint!(" "); // Clear the console before the final text display
+
+    for grey_nr in 232..256 { // Print the selected item in grey color
         eprint!("\x1b[38;5;{}m{:<3} ", grey_nr, grey_nr);
     }
-    eprintln!();
-    eprintln!("\x1b[0m");
-    eprintln!("\x1b[2K{}", selected_item);
+
+    eprintln!(); // Newline before the final text display
+    eprintln!("\x1b[0m"); // Reset color to default (black)
+    eprintln!("\x1b[2K{}", selected_item); // Display the selected item in bright white color on a black background.
 }
 
 fn ansi256_renderer(
@@ -782,6 +788,20 @@ fn main() {
         }
         return;
     };
+
+    if let Some(Actions::Contrast(args)) = args.action {
+        let colors = args.colors;
+        let initial_clr = program_state.curr_color.rgb();
+        let clr1 = [initial_clr.0, initial_clr.1, initial_clr.2];
+        println!("{}", program_state.curr_color.make_square());
+        for color in colors {
+            let repr = ColorRepresentation::from_color(&color, &program_state.clr_std);
+            let rgb = repr.rgb();
+            let clr2 = [rgb.0, rgb.1, rgb.2];
+            println!("{}: {}", repr.make_square(),color_conversions::contrast(clr1, clr2) );
+        }
+        return;
+    }
 
     let key_mappings = keymaps::init_keymaps(&program_state.config);
 

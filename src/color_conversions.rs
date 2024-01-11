@@ -1,10 +1,34 @@
 use std::collections::HashMap;
 
-use crate::{hashmap, read_ansi_color};
+use crate::{hashmap, read_ansi_color, color_representation::ColorRepresentation};
 
 pub type ColorInt = u32;
 ///Number from 0-1
 type Percentage = f32;
+
+fn luminance(color: [f32; 3]) -> f32 {
+    const RED: f32 = 0.2126;
+    const GREEN: f32 = 0.7152;
+    const BLUE: f32 = 0.0722;
+    const GAMMA: f32 = 2.4;
+    let adjusted: Vec<_> = color.iter().map(|v| {
+        let small = v / 255.0;
+        return if small <= 0.03928 {
+            small / 12.92
+        } else {
+            ((small + 0.055) / 1.055).powf(GAMMA)
+        }
+    }).collect();
+    return adjusted[0] * RED + adjusted[1] * GREEN + adjusted[2] * BLUE;
+}
+
+pub fn contrast(col1: [f32; 3], col2: [f32; 3]) -> f32 {
+    let lum1 = luminance(col1);
+    let lum2 = luminance(col2);
+    let brightest = max!(lum1, lum2);
+    let darkest = min!(lum1, lum2);
+    return (brightest + 0.05) / (darkest + 0.05);
+}
 
 pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
     s /= 100.0;

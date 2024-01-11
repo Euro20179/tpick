@@ -71,6 +71,15 @@ pub enum Actions {
     Mix(MixArgs),
     #[command(about = "Inverts the given color")]
     Invert(InvertArgs),
+    #[command(about = "Check contrast against other colors")]
+    Contrast(ContrastArgs)
+}
+
+#[derive(Parser, Debug)]
+#[command()]
+pub struct ContrastArgs{
+    #[arg(help = "The colors to contrast against")]
+    pub colors: Vec<String>
 }
 
 #[derive(Parser, Debug)]
