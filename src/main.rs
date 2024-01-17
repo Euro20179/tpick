@@ -53,7 +53,8 @@ fn render_ansi256(selected_item: u8, _square_count: u32) {
 
     eprint!(" "); // Clear the console before the final text display
 
-    for grey_nr in 232..256 { // Print the selected item in grey color
+    for grey_nr in 232..256 {
+        // Print the selected item in grey color
         eprint!("\x1b[38;5;{}m{:<3} ", grey_nr, grey_nr);
     }
 
@@ -203,7 +204,12 @@ fn render_comparison_colors(program_state: &ProgramState) {
         .chain(program_state.comparison_colors.iter())
     {
         eprint!("{}", clr.make_square());
-        eprintln!("{}", program_state.output_type.render_output(clr, program_state.enable_alpha))
+        eprintln!(
+            "{}",
+            program_state
+                .output_type
+                .render_output(clr, program_state.enable_alpha)
+        )
     }
 }
 
@@ -213,9 +219,16 @@ fn render_mix_colors(program_state: &ProgramState) {
     let sq_count = program_state.comparison_colors.len() + 1;
     eprint!("\x1b[{}A", sq_count * sq_height);
     //go to the right
-    eprint!("\x1b[{}C", program_state.output_type.render_output(&program_state.curr_color, program_state.enable_alpha).len() + 9);
+    eprint!(
+        "\x1b[{}C",
+        program_state
+            .output_type
+            .render_output(&program_state.curr_color, program_state.enable_alpha)
+            .len()
+            + 9
+    );
     //end section
-    
+
     let mix_space = if let SelectionType::HSL = program_state.selection_type {
         MixSpace::HSL
     } else {
@@ -232,7 +245,7 @@ fn render_mix_colors(program_state: &ProgramState) {
             clr.integer(),
             program_state.curr_color.integer(),
             0.5,
-            &mix_space
+            &mix_space,
         ));
         let output = program_state.output_type.render_output(&mixed_color, false);
         let o_width = output.len();
@@ -610,6 +623,7 @@ fn setup_term() -> (termios::Termios, termios::Termios) {
 
     return (tios_initial, tios);
 }
+
 fn close_term(initial_ios: &termios::Termios) {
     termios::tcsetattr(0, termios::TCSANOW, &initial_ios).unwrap();
 }
@@ -637,13 +651,13 @@ fn mix(mixing_args: &MixArgs, clr_std: &ColorNameStandard) -> Vec<ColorRepresent
             clr1,
             ColorRepresentation::from_color(clr_name, clr_std).integer(),
             percent / 100.0,
-            &MixSpace::RGB
+            &MixSpace::RGB,
         )))
     }
     return clrs;
 }
 
-fn convert(conversion: ConvertArgs, curr_color: &ColorRepresentation) {
+fn convert_action(conversion: ConvertArgs, curr_color: &ColorRepresentation) {
     println!(
         "{}",
         match conversion.to {
@@ -654,6 +668,41 @@ fn convert(conversion: ConvertArgs, curr_color: &ColorRepresentation) {
                 .render_output(curr_color, conversion.alpha),
         }
     );
+}
+
+fn contrast_action(args: &ContrastArgs, program_state: &ProgramState) {
+    let colors = &args.colors;
+    let initial_clr = program_state.curr_color.rgb();
+    let clr1 = [initial_clr.0, initial_clr.1, initial_clr.2];
+    println!("{}", program_state.curr_color.make_square());
+    for color in colors {
+        let repr = ColorRepresentation::from_color(&color, &program_state.clr_std);
+        let rgb = repr.rgb();
+        let clr2 = [rgb.0, rgb.1, rgb.2];
+        println!(
+            "{}: {}",
+            repr.make_square(),
+            color_conversions::contrast(clr1, clr2)
+        );
+    }
+}
+
+fn mix_action(args: &MixArgs, program_state: &ProgramState) {
+    let colors = mix(&args, &program_state.clr_std);
+    for color in colors {
+        if args.preview {
+            println!("{}", color.make_square());
+        }
+        println!("{}", program_state.output_type.render_output(&color, false));
+    }
+}
+
+fn invert_action(args: &InvertArgs, program_state: &ProgramState) {
+    let clr = ColorRepresentation::from_integer(invert(program_state.curr_color.integer()));
+    if args.preview {
+        println!("{}", clr.make_square());
+    }
+    println!("{}", program_state.output_type.render_output(&clr, false));
 }
 
 fn main() {
@@ -762,44 +811,26 @@ fn main() {
     );
 
     if let Some(Actions::Convert(conversion)) = args.action {
-        convert(conversion, &program_state.curr_color);
+        convert_action(conversion, &program_state.curr_color);
         close_term(&tios_initial);
         return;
     }
 
     if let Some(Actions::Invert(i_args)) = &args.action {
-        let clr = ColorRepresentation::from_integer(invert(program_state.curr_color.integer()));
-        if i_args.preview {
-            println!("{}", clr.make_square());
-        }
-        println!("{}", program_state.output_type.render_output(&clr, false));
+        invert_action(&i_args, &program_state);
         close_term(&tios_initial);
         return;
     }
 
     if let Some(Actions::Mix(mixing)) = args.action {
-        let colors = mix(&mixing, &clr_std);
+        mix_action(&mixing, &program_state);
         close_term(&tios_initial);
-        for color in colors {
-            if mixing.preview {
-                println!("{}", color.make_square());
-            }
-            println!("{}", program_state.output_type.render_output(&color, false));
-        }
         return;
     };
 
     if let Some(Actions::Contrast(args)) = args.action {
-        let colors = args.colors;
-        let initial_clr = program_state.curr_color.rgb();
-        let clr1 = [initial_clr.0, initial_clr.1, initial_clr.2];
-        println!("{}", program_state.curr_color.make_square());
-        for color in colors {
-            let repr = ColorRepresentation::from_color(&color, &program_state.clr_std);
-            let rgb = repr.rgb();
-            let clr2 = [rgb.0, rgb.1, rgb.2];
-            println!("{}: {}", repr.make_square(),color_conversions::contrast(clr1, clr2) );
-        }
+        contrast_action(&args, &program_state);
+        close_term(&tios_initial);
         return;
     }
 
