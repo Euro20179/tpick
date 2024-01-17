@@ -327,6 +327,10 @@ impl ProgramState {
         }
     }
 
+    fn from_args(args: &Args) -> Self {
+
+    }
+
     fn next_output(&mut self) {
         self.output_idx = (self.output_idx + 1) % self.output_order.len();
         match self.output_type {
@@ -628,6 +632,9 @@ fn close_term(initial_ios: &termios::Termios) {
     termios::tcsetattr(0, termios::TCSANOW, &initial_ios).unwrap();
 }
 
+///Reads up to 32 bytes from the terminal stream,
+///returns it assuming that it is a valid utf-8
+///representation of the user's input
 fn get_input(reader: &mut std::io::Stdin) -> String {
     let mut buf = [0; 32];
 
@@ -705,7 +712,23 @@ fn invert_action(args: &InvertArgs, program_state: &ProgramState) {
     println!("{}", program_state.output_type.render_output(&clr, false));
 }
 
+fn get_config_path() -> String{
+    let mut config_folder = std::env!("XDG_CONFIG_HOME").to_owned();
+    if config_folder == "" {
+        config_folder = String::from(std::env!("HOME")) + &String::from("/.config");
+    }
+    let tpick_config_path = config_folder + &String::from("/tpick");
+    tpick_config_path + &String::from("/config.toml")
+}
+
+fn read_config_toml(config_path: &str) -> Config {
+    let data = std::fs::read_to_string(config_path).unwrap_or("".to_string());
+    toml::from_str(&data).unwrap()
+}
+
 fn main() {
+    let mut reader = std::io::stdin();
+
     let args = Args::parse();
 
     let mut starting_clr = args.color.unwrap_or("#ff0000".to_string());
@@ -720,8 +743,6 @@ fn main() {
     let use_custom_colors = args.custom_colors;
 
     let requested_input_type = args.input_type.unwrap_or(SelectionType::HSL);
-
-    let mut reader = std::io::stdin();
 
     if starting_clr == "-".to_string() {
         starting_clr = String::new();
@@ -761,15 +782,9 @@ fn main() {
         close_term(&tios_initial);
         return;
     }
-    let mut config_folder = std::env!("XDG_CONFIG_HOME").to_owned();
-    if config_folder == "" {
-        config_folder = String::from(std::env!("HOME")) + &String::from("/.config");
-    }
-    let tpick_config_path = config_folder + &String::from("/tpick");
-    let config_path = tpick_config_path + &String::from("/config.toml");
 
-    let data = std::fs::read_to_string(config_path).unwrap_or("".to_string());
-    let cfg = toml::from_str(&data).unwrap();
+    let config_path = get_config_path();
+    let cfg = read_config_toml(&config_path);
 
     let cycle_to_use = args.output_cycle.unwrap_or("default".to_owned());
     let cycle = OutputType::get_order_by_name(&cfg, &cycle_to_use);
