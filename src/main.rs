@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 #[macro_use]
 mod math;
 mod cli;
@@ -327,9 +330,7 @@ impl ProgramState {
         }
     }
 
-    fn from_args(args: &Args) -> Self {
-
-    }
+    // fn from_args(args: &Args) -> Self {}
 
     fn next_output(&mut self) {
         self.output_idx = (self.output_idx + 1) % self.output_order.len();
@@ -712,7 +713,7 @@ fn invert_action(args: &InvertArgs, program_state: &ProgramState) {
     println!("{}", program_state.output_type.render_output(&clr, false));
 }
 
-fn get_config_path() -> String{
+fn get_config_path() -> String {
     let mut config_folder = std::env!("XDG_CONFIG_HOME").to_owned();
     if config_folder == "" {
         config_folder = String::from(std::env!("HOME")) + &String::from("/.config");

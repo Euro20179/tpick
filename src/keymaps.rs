@@ -75,7 +75,7 @@ pub fn init_keymaps(
     let config_keymaps = read_keymap_from_config(config);
 
     let mut insert = |name: String, cb| {
-        let n = &name.clone();
+        let n = &name;
         key_maps.insert(hash_get!(config_keymaps, n), cb);
     };
 

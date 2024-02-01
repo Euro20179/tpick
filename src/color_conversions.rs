@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{hashmap, read_ansi_color, color_representation::ColorRepresentation};
+use crate::{hashmap, read_ansi_color};
 
 pub type ColorInt = u32;
 ///Number from 0-1
@@ -11,14 +11,17 @@ fn luminance(color: [f32; 3]) -> f32 {
     const GREEN: f32 = 0.7152;
     const BLUE: f32 = 0.0722;
     const GAMMA: f32 = 2.4;
-    let adjusted: Vec<_> = color.iter().map(|v| {
-        let small = v / 255.0;
-        return if small <= 0.03928 {
-            small / 12.92
-        } else {
-            ((small + 0.055) / 1.055).powf(GAMMA)
-        }
-    }).collect();
+    let adjusted: Vec<_> = color
+        .iter()
+        .map(|v| {
+            let small = v / 255.0;
+            return if small <= 0.03928 {
+                small / 12.92
+            } else {
+                ((small + 0.055) / 1.055).powf(GAMMA)
+            };
+        })
+        .collect();
     return adjusted[0] * RED + adjusted[1] * GREEN + adjusted[2] * BLUE;
 }
 
@@ -67,7 +70,7 @@ pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
         g = min;
         b = f(360.0 - h);
     }
-    return ((r * 255.0), (g * 255.0), (b * 255.0));
+    return ((r * 255.0).round(), (g * 255.0).round(), (b * 255.0).round());
 }
 
 pub fn rgb2hsl(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32) {
@@ -528,7 +531,11 @@ fn color_mix_hsl(clr1: ColorInt, clr2: ColorInt, percent: Percentage) -> ColorIn
     let (r2, g2, b2) = number2rgb(clr2);
     let (h2, s2, l2) = rgb2hsl(r2 as f32, g2 as f32, b2 as f32);
     let clr1_p = 1.0 - percent;
-    let (r, g, b) = hsl2rgb(h1 * clr1_p + h2 * percent, s1 * clr1_p + s2 * percent, l1 * clr1_p + l2 * percent);
+    let (r, g, b) = hsl2rgb(
+        h1 * clr1_p + h2 * percent,
+        s1 * clr1_p + s2 * percent,
+        l1 * clr1_p + l2 * percent,
+    );
     return rgb2number(r, g, b);
 }
 
@@ -540,7 +547,7 @@ pub fn color_mix(
 ) -> ColorInt {
     match mix_space {
         MixSpace::RGB => color_mix_rgb(clr1, clr2, percent),
-        MixSpace::HSL => color_mix_hsl(clr1, clr2, percent)
+        MixSpace::HSL => color_mix_hsl(clr1, clr2, percent),
     }
 }
 
