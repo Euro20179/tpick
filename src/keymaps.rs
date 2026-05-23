@@ -101,7 +101,7 @@ pub fn init_keymaps(
     for i in 0..=9 {
         let t = format!("{}0%", i);
         insert(t, |program_state, key| {
-            let mult = key.parse::<f32>().unwrap() / 10.0;
+            let mult = key.parse::<f64>().unwrap() / 10.0;
             let max_values = program_state.selection_type.max_values();
             let max_value = max_values[program_state.selected_item as usize % max_values.len()];
             let sel_type = program_state.selection_type;

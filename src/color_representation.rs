@@ -33,21 +33,21 @@ macro_rules! hashmap {
 
 #[derive(Clone, Copy)]
 pub struct ColorRepresentation {
-    pub r: f32,
-    pub g: f32,
-    pub b: f32,
+    pub r: f64,
+    pub g: f64,
+    pub b: f64,
     pub a: u8,
 }
 
 impl ColorRepresentation {
     pub fn from_integer(clr: ColorInt) -> ColorRepresentation {
         let (r, g, b) = number2rgb(clr);
-        return ColorRepresentation { r: r as f32, g: g as f32, b: b as f32, a: 255 };
+        return ColorRepresentation { r: r as f64, g: g as f64, b: b as f64, a: 255 };
     }
     pub fn from_color(clr: &str, clr_name_standard: &ColorNameStandard) -> ColorRepresentation {
-        let r: f32;
-        let g: f32;
-        let b: f32;
+        let r: f64;
+        let g: f64;
+        let b: f64;
         let mut a = 255;
 
         let get_next = |split: &mut Split<'_, &str>| split.next().unwrap().trim().parse().unwrap();
@@ -71,16 +71,16 @@ impl ColorRepresentation {
             (r, g, b) = get_rgb(&mut items);
         } else if clr.starts_with("hsla") {
             let mut items = clr[5..clr.len() - 1].split(",");
-            let h: f32 = get_next(&mut items);
-            let s: f32 = get_next(&mut items);
-            let l: f32 = get_next(&mut items);
+            let h: f64 = get_next(&mut items);
+            let s: f64 = get_next(&mut items);
+            let l: f64 = get_next(&mut items);
             a = items.next().unwrap().trim().parse().unwrap();
             (r, g, b) = hsl2rgb(h, s, l);
         } else if clr.starts_with("hsl") {
             let mut items = clr[4..clr.len() - 1].split(",");
-            let h: f32 = get_next(&mut items);
-            let s: f32 = get_next(&mut items);
-            let l: f32 = get_next(&mut items);
+            let h: f64 = get_next(&mut items);
+            let s: f64 = get_next(&mut items);
+            let l: f64 = get_next(&mut items);
             (r, g, b) = hsl2rgb(h, s, l);
         }        //#RGB or #RGBA or #RRGGBB or #RRGGBBAA
         else if clr.starts_with("#")
@@ -88,25 +88,25 @@ impl ColorRepresentation {
         {
             match clr.len() {
                 4 => {
-                    r = (i64::from_str_radix(&clr[1..2], 16).unwrap() as f32).powi(2);
-                    g = (i64::from_str_radix(&clr[2..3], 16).unwrap() as f32).powi(2);
-                    b = (i64::from_str_radix(&clr[3..4], 16).unwrap() as f32).powi(2);
+                    r = (i64::from_str_radix(&clr[1..2], 16).unwrap() as f64).powi(2);
+                    g = (i64::from_str_radix(&clr[2..3], 16).unwrap() as f64).powi(2);
+                    b = (i64::from_str_radix(&clr[3..4], 16).unwrap() as f64).powi(2);
                 }
                 5 => {
-                    r = (i64::from_str_radix(&clr[1..2], 16).unwrap() as f32).powi(2);
-                    g = (i64::from_str_radix(&clr[2..3], 16).unwrap() as f32).powi(2);
-                    b = (i64::from_str_radix(&clr[3..4], 16).unwrap() as f32).powi(2);
+                    r = (i64::from_str_radix(&clr[1..2], 16).unwrap() as f64).powi(2);
+                    g = (i64::from_str_radix(&clr[2..3], 16).unwrap() as f64).powi(2);
+                    b = (i64::from_str_radix(&clr[3..4], 16).unwrap() as f64).powi(2);
                     a = (i64::from_str_radix(&clr[4..5], 16).unwrap()).pow(2) as u8;
                 }
                 7 => {
-                    r = i64::from_str_radix(&clr[1..3], 16).unwrap() as f32;
-                    g = i64::from_str_radix(&clr[3..5], 16).unwrap() as f32;
-                    b = i64::from_str_radix(&clr[5..7], 16).unwrap() as f32;
+                    r = i64::from_str_radix(&clr[1..3], 16).unwrap() as f64;
+                    g = i64::from_str_radix(&clr[3..5], 16).unwrap() as f64;
+                    b = i64::from_str_radix(&clr[5..7], 16).unwrap() as f64;
                 }
                 9 => {
-                    r = i64::from_str_radix(&clr[1..3], 16).unwrap() as f32;
-                    g = i64::from_str_radix(&clr[3..5], 16).unwrap() as f32;
-                    b = i64::from_str_radix(&clr[5..7], 16).unwrap() as f32;
+                    r = i64::from_str_radix(&clr[1..3], 16).unwrap() as f64;
+                    g = i64::from_str_radix(&clr[3..5], 16).unwrap() as f64;
+                    b = i64::from_str_radix(&clr[5..7], 16).unwrap() as f64;
                     a = i64::from_str_radix(&clr[7..9], 16).unwrap() as u8;
                 }
                 _ => {
@@ -115,7 +115,7 @@ impl ColorRepresentation {
             }
         } else {
             let (r8, g8, b8) = hex62rgb(&name_to_hex(clr, clr_name_standard)[1..]);
-            (r, g, b) = (r8 as f32, g8 as f32, b8 as f32);
+            (r, g, b) = (r8 as f64, g8 as f64, b8 as f64);
         }
         ColorRepresentation { r, g, b, a }
     }
@@ -131,38 +131,38 @@ impl ColorRepresentation {
         return rgb2number(self.r, self.g, self.b);
     }
 
-    pub fn add_rgba(&mut self, rgba: [f32; 4]) {
+    pub fn add_rgba(&mut self, rgba: [f64; 4]) {
         self.modify_rgb((self.r + rgba[0], self.g + rgba[1], self.b + rgba[2]));
-        self.modify_a((self.a + rgba[3] as u8) as i32);
+        self.modify_a((self.a + rgba[3] as u8) as i64);
     }
 
-    pub fn add_hsla(&mut self, hsla: [f32; 4]) {
+    pub fn add_hsla(&mut self, hsla: [f64; 4]) {
         let (h, s, l) = self.hsl();
         self.modify_hsl((h + hsla[0], s + hsla[1], l + hsla[2]));
-        self.modify_a(self.a as i32 + hsla[3] as i32);
+        self.modify_a(self.a as i64 + hsla[3] as i64);
     }
 
-    pub fn hsl(&self) -> (f32, f32, f32) {
+    pub fn hsl(&self) -> (f64, f64, f64) {
         return rgb2hsl(self.r, self.g, self.b);
     }
 
-    pub fn rgb(&self) -> (f32, f32, f32) {
+    pub fn rgb(&self) -> (f64, f64, f64) {
         return (self.r, self.g, self.b);
     }
 
-    pub fn modify_a(&mut self, mut new_value: i32) {
+    pub fn modify_a(&mut self, mut new_value: i64) {
         new_value = clamp_with_bel!(0, new_value, 255);
         self.a = new_value as u8;
     }
 
-    pub fn modify_rgb(&mut self, mut new_value: (f32, f32, f32)) {
+    pub fn modify_rgb(&mut self, mut new_value: (f64, f64, f64)) {
         new_value.0 = clamp_with_bel!(0.0, new_value.0, 255.0);
         new_value.1 = clamp_with_bel!(0.0, new_value.1, 255.0);
         new_value.2 = clamp_with_bel!(0.0, new_value.2, 255.0);
         (self.r, self.g, self.b) = new_value;
     }
 
-    pub fn modify_hsl(&mut self, mut new_value: (f32, f32, f32)) {
+    pub fn modify_hsl(&mut self, mut new_value: (f64, f64, f64)) {
         new_value.0 = clamp_with_bel!(0.0, new_value.0, 359.0);
         new_value.1 = clamp_with_bel!(0.0, new_value.1, 100.0);
         new_value.2 = clamp_with_bel!(0.0, new_value.2, 100.0);
@@ -238,9 +238,9 @@ impl ColorRepresentation {
         let ch_to_value = hashmap! {
             "R" => self.r, "G" => self.g, "B" => self.b,
             "H" => h, "S" => s, "L" => l,
-            "A" => self.a as f32,
-            "D" => (self.r as u32 * ((256u32).pow(2)) + self.g as u32 * 256) as f32 + self.b,
-            "E" => rgb2ansi256(self.r as u8, self.g as u8, self.b as u8) as f32
+            "A" => self.a as f64,
+            "D" => (self.r as u64 * ((256u64).pow(2)) + self.g as u64 * 256) as f64 + self.b,
+            "E" => rgb2ansi256(self.r as u8, self.g as u8, self.b as u8) as f64
         };
         let mut result = String::new();
         let mut is_fmt_char = false;

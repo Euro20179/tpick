@@ -8,6 +8,7 @@ mod color_conversions;
 mod color_representation;
 mod keymaps;
 mod ui;
+
 #[macro_use]
 mod console;
 
@@ -15,13 +16,13 @@ use clap::Parser;
 use cli::*;
 use color_representation::*;
 use keymaps::Action;
+use libc::exit;
 use termios::Termios;
 
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::io::Read;
 use std::os::fd::AsRawFd;
-use std::process::exit;
 
 use base64::engine::general_purpose;
 use base64::prelude::*;
@@ -70,7 +71,7 @@ fn ansi256_renderer(
     _curr_color: &ColorRepresentation,
     selected_item: u8,
     square_count: u32,
-    _step: f32,
+    _step: f64,
 ) {
     let mut reader = std::io::stdin();
     let [_rows, cols] = query_window_area(&mut reader);
@@ -82,7 +83,7 @@ fn ansi256_renderer(
     }
 }
 
-fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rgb_idx: usize) {
+fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f64, rgb_idx: usize) {
     //the way this renders will have all sliders colors update live based on the value of the other
     //channels in the color
 
@@ -104,7 +105,7 @@ fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rg
         //print a square with the correct color
         eprint!("\x1b[38;2;{}m█", color.toansi(false));
         //modifies this slider's color to be i% of 255
-        colors[modifier_idx] = (i as f32 / square_count as f32) * 255.0;
+        colors[modifier_idx] = (i as f64 / square_count as f64) * 255.0;
         color.modify_rgb((colors[0], colors[1], colors[2]));
     }
     eprintln!("\x1b[0m");
@@ -115,7 +116,7 @@ fn render_rgb(curr_color: &ColorRepresentation, square_count: u32, step: f32, rg
     );
 }
 
-fn rgb_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f32) {
+fn rgb_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f64) {
     for i in 0..=2 {
         eprint!("\x1b[{};0H", i * 2 + 1);
         if selected_item == i {
@@ -125,7 +126,7 @@ fn rgb_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_coun
     }
 }
 
-fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hsl_idx: usize) {
+fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f64, hsl_idx: usize) {
     //works similarly to render_rgb
     let (h, s, l) = curr_color.hsl();
     let mut colors = [h, s, l];
@@ -140,7 +141,7 @@ fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hs
     );
     for i in 0..square_count {
         eprint!("\x1b[38;2;{}m█", color.toansi(false));
-        colors[modifier_idx] = (i as f32 / square_count as f32) * modifier_multiplier;
+        colors[modifier_idx] = (i as f64 / square_count as f64) * modifier_multiplier;
         color.modify_hsl((colors[0], colors[1], colors[2]));
     }
     eprintln!("\x1b[0m");
@@ -149,7 +150,7 @@ fn render_hsl(curr_color: &ColorRepresentation, square_count: u32, step: f32, hs
     );
 }
 
-fn hsl_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f32) {
+fn hsl_renderer(curr_color: &ColorRepresentation, selected_item: u8, square_count: u32, step: f64) {
     for i in 0..=2 {
         eprint!("\x1b[{};0H", i * 2 + 1);
         if selected_item == i {
@@ -164,7 +165,7 @@ fn render_a(square_count: u32) {
     let mut sat_color_rep = ColorRepresentation::from_color("#000000", &ColorNameStandard::W3C);
     for i in 0..square_count {
         eprint!("\x1b[38;2;{}m█", sat_color_rep.toansi(false));
-        sat_color_rep.modify_hsl((0.0, 0.0, (i as f32 / square_count as f32)))
+        sat_color_rep.modify_hsl((0.0, 0.0, (i as f64 / square_count as f64)))
     }
     eprintln!("\x1b[0m");
 }
@@ -176,9 +177,9 @@ fn render_carrot_on_current_line(col: usize) {
 fn render_sliders(
     curr_color: &ColorRepresentation,
     alpha: u8,
-    renderer: fn(&ColorRepresentation, u8, u32, f32),
+    renderer: fn(&ColorRepresentation, u8, u32, f64),
     square_count: u32,
-    step: f32,
+    step: f64,
     selected_item: u8,
     selected_type: &SelectionType,
     enable_alpha: bool,
@@ -193,11 +194,11 @@ fn render_sliders(
     }
 }
 
-fn render_alpha_display(alpha: u8, square_count: u32, step: f32) {
+fn render_alpha_display(alpha: u8, square_count: u32, step: f64) {
     render_a(square_count);
     eprintln!(
         "\x1b[2K {}^",
-        " ".repeat(((alpha as f32 / 255.0 * 360.0) / step).floor() as usize)
+        " ".repeat(((alpha as f64 / 255.0 * 360.0) / step).floor() as usize)
     );
 }
 
@@ -258,7 +259,7 @@ fn render_mix_colors(program_state: &ProgramState) {
     }
 }
 
-fn render_display(program_state: &ProgramState, square_count: u32, step: f32) {
+fn render_display(program_state: &ProgramState, square_count: u32, step: f64) {
     render_sliders(
         &program_state.curr_color,
         program_state.curr_color.a,
@@ -359,7 +360,7 @@ impl SelectionType {
         }
     }
 
-    fn max_values(&self) -> Vec<f32> {
+    fn max_values(&self) -> Vec<f64> {
         match self {
             SelectionType::HSL => vec![359.0, 100.0, 100.0, 255.0],
             SelectionType::RGB => vec![255.0, 255.0, 255.0, 255.0],
@@ -367,23 +368,23 @@ impl SelectionType {
         }
     }
 
-    fn increments(&self) -> Vec<f32> {
+    fn increments(&self) -> Vec<f64> {
         match self {
             Self::HSL | Self::RGB => vec![1.0, 1.0, 1.0, 1.0],
             Self::ANSI256 => vec![1.0],
         }
     }
 
-    fn colors(&self, program_state: &ProgramState) -> Vec<f32> {
+    fn colors(&self, program_state: &ProgramState) -> Vec<f64> {
         match self {
             Self::RGB => {
                 let (r, g, b) = program_state.curr_color.rgb();
-                vec![r, g, b, program_state.curr_color.a as f32]
+                vec![r, g, b, program_state.curr_color.a as f64]
             }
-            Self::ANSI256 => vec![program_state.selected_item as f32],
+            Self::ANSI256 => vec![program_state.selected_item as f64],
             Self::HSL => {
                 let (h, s, l) = program_state.curr_color.hsl();
-                vec![h, s, l, program_state.curr_color.a as f32]
+                vec![h, s, l, program_state.curr_color.a as f64]
             }
         }
     }
@@ -391,19 +392,19 @@ impl SelectionType {
     fn modify_color_based_on_selected_item(
         &self,
         program_state: &mut ProgramState,
-        new_value: f32,
+        new_value: f64,
     ) {
         let selected_item = program_state.selected_item;
         match self {
             SelectionType::HSL => {
                 let (h, s, l) = program_state.curr_color.hsl();
-                let mut modifiables = [h, s, l, program_state.curr_color.a as f32];
+                let mut modifiables = [h, s, l, program_state.curr_color.a as f64];
                 modifiables[selected_item as usize] = new_value;
                 program_state.curr_color.add_hsla([
                     modifiables[0] - h,
                     modifiables[1] - s,
                     modifiables[2] - l,
-                    modifiables[3] - program_state.curr_color.a as f32,
+                    modifiables[3] - program_state.curr_color.a as f64,
                 ]);
             }
             SelectionType::RGB => {
@@ -412,13 +413,13 @@ impl SelectionType {
                     program_state.curr_color.g,
                     program_state.curr_color.b,
                 );
-                let mut modifiables = [r, g, b, program_state.curr_color.a as f32];
+                let mut modifiables = [r, g, b, program_state.curr_color.a as f64];
                 modifiables[selected_item as usize] = new_value;
                 program_state.curr_color.add_rgba([
                     modifiables[0] - r,
                     modifiables[1] - g,
                     modifiables[2] - b,
-                    modifiables[3] - program_state.curr_color.a as f32,
+                    modifiables[3] - program_state.curr_color.a as f64,
                 ]);
             }
             Self::ANSI256 => {
@@ -427,7 +428,7 @@ impl SelectionType {
                 let (r, g, b) = ansi2562rgb(new_value as u8, &low_rgb);
                 program_state
                     .curr_color
-                    .modify_rgb((r as f32, g as f32, b as f32));
+                    .modify_rgb((r as f64, g as f64, b as f64));
                 program_state.selected_item = new_value as u8;
             }
         }
@@ -615,18 +616,26 @@ fn read_clipboard(reader: &mut std::io::Stdin) -> String {
 
 //returns oldtermios, newtermios
 fn setup_term() -> (termios::Termios, termios::Termios) {
-    let tty = std::fs::File::open("/dev/tty").unwrap();
-    let tty_fd = tty.as_raw_fd();
-    unsafe { libc::dup2(tty_fd, 0) };
-    let mut tios = Termios::from_fd(0).unwrap();
-    let mut tios_initial = Termios::from_fd(0).unwrap();
-    let _ = termios::tcgetattr(0, &mut tios);
-    let _ = termios::tcgetattr(0, &mut tios_initial);
+    let tty = std::fs::File::open("/dev/tty");
+    match tty {
+        Err(..) => {
+            eprintln!("Could not open tty");
+            unsafe { exit(1) }
+        }
+        Ok(tty) => {
+            let tty_fd = tty.as_raw_fd();
+            unsafe { libc::dup2(tty_fd, 0) };
+            let mut tios = Termios::from_fd(0).unwrap();
+            let mut tios_initial = Termios::from_fd(0).unwrap();
+            let _ = termios::tcgetattr(0, &mut tios);
+            let _ = termios::tcgetattr(0, &mut tios_initial);
 
-    tios.c_lflag &= !(termios::ICANON | termios::ECHO);
-    termios::tcsetattr(0, termios::TCSANOW, &tios).unwrap();
+            tios.c_lflag &= !(termios::ICANON | termios::ECHO);
+            termios::tcsetattr(0, termios::TCSANOW, &tios).unwrap();
 
-    return (tios_initial, tios);
+            return (tios_initial, tios);
+        }
+    }
 }
 
 fn close_term(initial_ios: &termios::Termios) {
@@ -654,7 +663,7 @@ fn mix(mixing_args: &MixArgs, clr_std: &ColorNameStandard) -> Vec<ColorRepresent
             .next()
             .unwrap_or("50")
             .parse::<f32>()
-            .unwrap();
+            .unwrap() as f64;
         clrs.push(ColorRepresentation::from_integer(color_mix(
             clr1,
             ColorRepresentation::from_color(clr_name, clr_std).integer(),
@@ -792,7 +801,7 @@ fn main() {
 
     if let None = cycle {
         eprintln!("Invalid cycle: {}", cycle_to_use);
-        exit(1);
+        unsafe { exit(1) };
     }
 
     let output_cycle = cycle.unwrap();
@@ -870,7 +879,7 @@ fn main() {
         //this variable keeps track of the step for the step increase for the HSL/RGB rendering
         let step = (360.0
             / (cols - 1/*the minus 1 is because we need to leave space for the label*/) as f32)
-            .ceil();
+            .ceil() as f64;
 
         let square_count = (360.0 / step).ceil() as u32;
         render_display(&program_state, square_count, step);
@@ -887,11 +896,14 @@ fn main() {
             }
         }
     }
+
     close_term(&tios_initial);
+
     eprint!("\x1b[?1049l");
     eprint!("\x1b[?25h");
     eprint!("\x1b]11;{}\x07", bg_color);
     eprint!("\x1b]10;{}\x07", fg_color);
+
     if args.print_on_exit {
         cls();
         println!(

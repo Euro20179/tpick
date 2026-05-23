@@ -2,9 +2,7 @@ use clap::ColorChoice;
 use clap::Parser;
 
 use crate::ColorNameStandard;
-use crate::ProgramState;
 use crate::SelectionType;
-use crate::contrast_action;
 
 #[derive(Debug, PartialEq, Clone, clap::ValueEnum)]
 pub enum RequestedOutputType {

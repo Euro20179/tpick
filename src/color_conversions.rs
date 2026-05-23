@@ -2,15 +2,15 @@ use std::collections::HashMap;
 
 use crate::{hashmap, read_ansi_color};
 
-pub type ColorInt = u32;
+pub type ColorInt = u64;
 ///Number from 0-1
-type Percentage = f32;
+type Percentage = f64;
 
-fn luminance(color: [f32; 3]) -> f32 {
-    const RED: f32 = 0.2126;
-    const GREEN: f32 = 0.7152;
-    const BLUE: f32 = 0.0722;
-    const GAMMA: f32 = 2.4;
+fn luminance(color: [f64; 3]) -> f64 {
+    const RED: f64 = 0.2126;
+    const GREEN: f64 = 0.7152;
+    const BLUE: f64 = 0.0722;
+    const GAMMA: f64 = 2.4;
     let adjusted: Vec<_> = color
         .iter()
         .map(|v| {
@@ -25,7 +25,7 @@ fn luminance(color: [f32; 3]) -> f32 {
     return adjusted[0] * RED + adjusted[1] * GREEN + adjusted[2] * BLUE;
 }
 
-pub fn contrast(col1: [f32; 3], col2: [f32; 3]) -> f32 {
+pub fn contrast(col1: [f64; 3], col2: [f64; 3]) -> f64 {
     let lum1 = luminance(col1);
     let lum2 = luminance(col2);
     let brightest = max!(lum1, lum2);
@@ -33,7 +33,7 @@ pub fn contrast(col1: [f32; 3], col2: [f32; 3]) -> f32 {
     return (brightest + 0.05) / (darkest + 0.05);
 }
 
-pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
+pub fn hsl2rgb(mut h: f64, mut s: f64, mut l: f64) -> (f64, f64, f64) {
     s /= 100.0;
     l /= 100.0;
     let (r, g, b);
@@ -73,7 +73,7 @@ pub fn hsl2rgb(mut h: f32, mut s: f32, mut l: f32) -> (f32, f32, f32) {
     return ((r * 255.0).round(), (g * 255.0).round(), (b * 255.0).round());
 }
 
-pub fn rgb2hsl(mut r: f32, mut g: f32, mut b: f32) -> (f32, f32, f32) {
+pub fn rgb2hsl(mut r: f64, mut g: f64, mut b: f64) -> (f64, f64, f64) {
     r /= 255.0;
     g /= 255.0;
     b /= 255.0;
@@ -141,24 +141,24 @@ pub fn ansi2562rgb(ansi: u8, low_rgb: &Vec<String>) -> (u8, u8, u8) {
     return (r, g, b);
 }
 
-pub fn rgb2number(r: f32, g: f32, b: f32) -> u32 {
-    (r as u32 * ((256u32).pow(2)) + g as u32 * 256) as u32 + b as u32
+pub fn rgb2number(r: f64, g: f64, b: f64) -> u64 {
+    (r as u64 * ((256u64).pow(2)) + g as u64 * 256) as u64 + b as u64
 }
 
 pub fn number2rgb(number: ColorInt) -> (u8, u8, u8) {
     let b = number % 256;
     let g = ((number - b) / 256) % 256;
-    let r = ((number - b) / 256u32.pow(2)) - g / 256;
+    let r = ((number - b) / 256u64.pow(2)) - g / 256;
     return (r as u8, g as u8, b as u8);
 }
 
 pub fn rgb2ansi256(r: u8, g: u8, b: u8) -> u8 {
     let low_rgb: Vec<String> = (0..16).map(|_| "#000000".to_owned()).collect();
-    let mut ansi_table: HashMap<i32, u8> = HashMap::new();
+    let mut ansi_table: HashMap<i64, u8> = HashMap::new();
     let mut numbers: Vec<[u8; 3]> = vec![];
     for clr in 16..=231 {
         let (r, g, b) = ansi2562rgb(clr, &low_rgb);
-        ansi_table.insert(rgb2number(r as f32, g as f32, b as f32) as i32, clr);
+        ansi_table.insert(rgb2number(r as f64, g as f64, b as f64) as i64, clr);
         numbers.push([r, g, b]);
     }
     let components = [r, g, b];
@@ -182,7 +182,7 @@ pub fn rgb2ansi256(r: u8, g: u8, b: u8) -> u8 {
         }
     }
     return *ansi_table
-        .get(&(rgb2number(res[0] as f32, res[1] as f32, res[2] as f32) as i32))
+        .get(&(rgb2number(res[0] as f64, res[1] as f64, res[2] as f64) as i64))
         .unwrap();
 }
 
@@ -519,17 +519,17 @@ fn color_mix_rgb(clr1: ColorInt, clr2: ColorInt, percent: Percentage) -> ColorIn
     let (r2, g2, b2) = number2rgb(clr2);
     let clr1_p = 1.0 - percent;
     return rgb2number(
-        r1 as f32 * clr1_p + r2 as f32 * percent,
-        g1 as f32 * clr1_p + g2 as f32 * percent,
-        b1 as f32 * clr1_p + b2 as f32 * percent,
+        r1 as f64 * clr1_p + r2 as f64 * percent,
+        g1 as f64 * clr1_p + g2 as f64 * percent,
+        b1 as f64 * clr1_p + b2 as f64 * percent,
     );
 }
 
 fn color_mix_hsl(clr1: ColorInt, clr2: ColorInt, percent: Percentage) -> ColorInt {
     let (r1, g1, b1) = number2rgb(clr1);
-    let (h1, s1, l1) = rgb2hsl(r1 as f32, g1 as f32, b1 as f32);
+    let (h1, s1, l1) = rgb2hsl(r1 as f64, g1 as f64, b1 as f64);
     let (r2, g2, b2) = number2rgb(clr2);
-    let (h2, s2, l2) = rgb2hsl(r2 as f32, g2 as f32, b2 as f32);
+    let (h2, s2, l2) = rgb2hsl(r2 as f64, g2 as f64, b2 as f64);
     let clr1_p = 1.0 - percent;
     let (r, g, b) = hsl2rgb(
         h1 * clr1_p + h2 * percent,
@@ -553,7 +553,7 @@ pub fn color_mix(
 
 pub fn invert(clr: ColorInt) -> ColorInt {
     let (r, g, b) = number2rgb(clr);
-    return rgb2number(255.0 - r as f32, 255.0 - g as f32, 255.0 - b as f32);
+    return rgb2number(255.0 - r as f64, 255.0 - g as f64, 255.0 - b as f64);
 }
 
 pub fn name_to_hex<'a>(name: &str, color_name_standard: &'a ColorNameStandard) -> String {
